@@ -3,8 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from Azure_auth.auth import azure_scheme,BACKEND_CORS_ORIGINS, OPENAPI_CLIENT_ID, SCOPE_NAME
 from api.manifest import router as manifest_router
 from api.canvas import router as canvas_router
-from api.annotation_page import router as annotation_page_router
-from api.annotation import router as annotation_router
+
 import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
@@ -53,5 +52,4 @@ if BACKEND_CORS_ORIGINS:
     
 app.include_router(manifest_router)
 app.include_router(canvas_router)
-app.include_router(annotation_page_router)
-app.include_router(annotation_router)
+

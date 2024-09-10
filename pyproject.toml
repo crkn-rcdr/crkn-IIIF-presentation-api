@@ -22,6 +22,7 @@ python-swiftclient = "^4.6.0"
 aiohttp = "^3.10.3"
 fastapi-azure-auth = "^5.0.0"
 pydantic-settings = "^2.4.0"
+pyjwt = "^2.9.0"
 
 
 [build-system]

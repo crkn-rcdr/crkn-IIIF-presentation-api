@@ -2,19 +2,20 @@ from fastapi import APIRouter,Depends,File,UploadFile,HTTPException,BackgroundTa
 from sqlalchemy.ext.asyncio import AsyncSession
 from db_config.sqlalchemy_async_connect import async_get_db
 import json
-from utils.validator import  Validator
 from swift_config.swift_config import get_swift_connection
 import os
 from dotenv import load_dotenv
-from swiftclient.exceptions import ClientException
 import logging
-from utils import back_task
+from utils.upload_manifest import upload_manifest
 from repository.manifest import ManifestRepository
 from utils.slug import get_slug
 from Azure_auth.auth import azure_scheme
+from Azure_auth.jwt_auth import jwt_auth
+
 # load .env file
 load_dotenv()
 container_name =  os.getenv("CONTAINER_NAME")
+jwt_secret = os.getenv("JWT_SECRET")
 
 # load logger which defined in main.py
 logger = logging.getLogger("Presentation_logger")
@@ -37,42 +38,17 @@ async def get_manifest(manifest_id:str,db:AsyncSession = Depends(async_get_db)):
     except Exception as e:
         logger.error(f"Error info: {str(e)}", exc_info=True)
         raise HTTPException(status_code=404, detail=f"Manifest not found")
-    
+
+@router.put("/admin/file",dependencies=[Depends(jwt_auth)])
+async def send_manifest(slug:str,request:Request,background_tasks: BackgroundTasks,file:UploadFile = File(...),db:AsyncSession = Depends(async_get_db)):
+    message = await upload_manifest(slug,request,background_tasks,file,db)   
+    return message
+
+   
 @router.put("/file",dependencies=[Security(azure_scheme)])
 async def update_manifest(slug:str,request:Request,background_tasks: BackgroundTasks,file:UploadFile = File(...),db:AsyncSession = Depends(async_get_db)):
-    #verify file format
-    if file.content_type != "application/json":
-        raise HTTPException(status_code=400,detail="Invalid file typ. Only JSON files are allowed.")
-    try:
-        content = await file.read()
-        # Validate the manifest,pass JSON string
-        validator = Validator()
-        result = json.loads(validator.check_manifest(content))
-        if result['okay'] == 0:
-            return {"message":"The manifest is invalid. Please correct it based on the provided error information.",
-                    "data":{"error":result['error'],"errorList":result['errorList']}
-                    }
-        manifest = json.loads(content)
-        #manifest_id = "/".join(manifest['id'].split('/')[-2:])
-        manifest_name = f'{slug}/manifest.json'
-       # Upload manifest to Swift
-        conn.put_object(
-                container_name,
-                manifest_name,
-                contents=content,
-            )  
-        
-        #write to database
-        iiif_url = str(request.base_url) 
-        background_tasks.add_task(back_task.manifest_task,manifest,db,iiif_url,slug)
-       
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=400,detail="Invalid JSON content")
-    except ClientException as e:
-        logger.error(f"Failed to upload to Swift: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500,detail=f"Failed to upload to Swift")
-   
-    return  {"message":"Upload successfully","data":manifest}
+    message = await upload_manifest(slug,request,background_tasks,file,db)   
+    return message
 
 
 

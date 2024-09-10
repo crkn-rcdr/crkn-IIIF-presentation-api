@@ -1,4 +1,3 @@
-from repository import manifest
 from sqlalchemy.ext.asyncio import AsyncSession
 from repository.manifest import  ManifestRepository
 from repository.canvas import CanvasRepository
@@ -10,21 +9,22 @@ from swift_config.swift_config import get_swift_connection
 import json
 import os
 from dotenv import load_dotenv
-from urllib.parse import unquote
+
 
 async def manifest_task(manifest_dict: dict, db: AsyncSession,iiif_url:str,slug:str):
     # load .env file
     load_dotenv()
-    container_name =  os.getenv("CONTAINER_NAME")
+    #container_name =  os.getenv("CONTAINER_NAME")
     # load logger which defined in main.py
     logger = logging.getLogger("Presentation_logger")
     # Connect to Swift
-    conn = get_swift_connection()
+    #conn = get_swift_connection()
+
     manifest_id = "/".join(manifest_dict['id'].split('/')[-2:])
-    canvas_content = manifest_dict['items']
+    #canvas_content = manifest_dict['items']
     #for data in conn.get_container(container_name)[1]:
       #print('{0}\t{1}\t{2}'.format(data['name'], data['bytes'], data['last_modified']))
-   
+    """
     #extract values to upload files to swift
     for canvas_item in canvas_content:
          
@@ -66,11 +66,10 @@ async def manifest_task(manifest_dict: dict, db: AsyncSession,iiif_url:str,slug:
             
     logger.info("All files uploaded successfully.")
     print("uploaded all files") 
-    
+    """
     #extract values from manifest_dict to tables
     context = manifest_dict.get("@context",['https://iiif.io/api/presentation/3/context.json'])
     context = [context] if isinstance(context, str) else context
-    print(type(context))
     manifest_table = Manifest(
         context=context,
         id=manifest_dict.get('id',iiif_url + 'manifest/' + manifest_id),
