@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from Azure_auth.auth import azure_scheme,BACKEND_CORS_ORIGINS, OPENAPI_CLIENT_ID, SCOPE_NAME
 from api.manifest import router as manifest_router
 from api.canvas import router as canvas_router
-
+from fastapi.responses import RedirectResponse
 import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
@@ -49,7 +49,10 @@ if BACKEND_CORS_ORIGINS:
         allow_methods=['*'],
         allow_headers=['*'],
     )
-    
+@app.get("/")
+async def redirect_to_docs():
+    return RedirectResponse(url="/docs")
+   
 app.include_router(manifest_router)
 app.include_router(canvas_router)
 
