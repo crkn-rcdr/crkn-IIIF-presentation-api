@@ -35,6 +35,13 @@ async def upload_manifest(slug:str,request:Request,background_tasks: BackgroundT
         manifest = json.loads(content)
         #manifest_id = "/".join(manifest['id'].split('/')[-2:])
         manifest_name = f'{slug}/manifest.json'
+       # Check for empty values and raise error if any are found
+        empty_keys = [key for key, value in manifest.items() if not value]
+        if empty_keys:
+            raise HTTPException(
+                status_code=400,
+                detail=f"The following keys have empty values: {empty_keys}. Please provide values or remove the keys."
+            )
        # Upload manifest to Swift
         conn.put_object(
                 container_name,

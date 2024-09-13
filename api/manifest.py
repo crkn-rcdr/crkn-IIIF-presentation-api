@@ -30,7 +30,6 @@ async def get_manifest(manifest_id:str,db:AsyncSession = Depends(async_get_db)):
     manifest_repo = ManifestRepository(db)
     try:
         slug = await get_slug(manifest_repo,manifest_id)
-        print(slug,'tet')
         manifest_name = f'{slug}/manifest.json'
         _,manifest = conn.get_object(container_name, manifest_name)
         manifest_data = json.loads(manifest)
