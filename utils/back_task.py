@@ -6,8 +6,6 @@ from repository.annotation import AnnotationRepository
 from models.data.presentation_models import Manifest,Canvas,AnnotationPage,Annotation
 import logging
 from swift_config.swift_config import get_swift_connection
-import json
-import os
 from dotenv import load_dotenv
 
 

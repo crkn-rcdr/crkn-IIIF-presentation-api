@@ -1,6 +1,5 @@
 from models.data.presentation_models import Annotation
-from sqlalchemy import update,delete,insert
-from sqlalchemy.future import select
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession    
 class AnnotationRepository:
     def __init__(self,sess:AsyncSession):
