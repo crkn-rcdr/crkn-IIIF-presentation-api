@@ -49,7 +49,7 @@ if BACKEND_CORS_ORIGINS:
         allow_methods=['*'],
         allow_headers=['*'],
     )
-@app.get("/")
+@app.get("/",include_in_schema=False)
 async def redirect_to_docs():
     return RedirectResponse(url="/docs")
    
