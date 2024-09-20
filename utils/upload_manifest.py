@@ -1,13 +1,14 @@
 import os
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import BackgroundTasks,Request,UploadFile,HTTPException
+from fastapi import BackgroundTasks,Request,UploadFile,HTTPException,Depends
 from utils.validator import  Validator
 import json
 from swift_config.swift_config import get_swift_connection
 from utils import back_task
 from swiftclient.exceptions import ClientException
 import logging
+from utils.redis import get_redis_client
 
 # load .env file
 load_dotenv()
@@ -19,7 +20,11 @@ conn = get_swift_connection()
 # load logger which defined in main.py
 logger = logging.getLogger("Presentation_logger")
 
-async def upload_manifest(slug:str,request:Request,background_tasks: BackgroundTasks,file:UploadFile ,db:AsyncSession):
+async def upload_manifest(slug:str,
+                          request:Request,
+                          background_tasks: BackgroundTasks,
+                          file:UploadFile ,db:AsyncSession,
+                          redis_client):
      #verify file format
     if file.content_type != "application/json":
         raise HTTPException(status_code=400,detail="Invalid file typ. Only JSON files are allowed.")
@@ -47,7 +52,11 @@ async def upload_manifest(slug:str,request:Request,background_tasks: BackgroundT
                 container_name,
                 manifest_name,
                 contents=content,
-            )  
+            ) 
+        # Check cache and delete if it exists
+        redis_key = f"manifest_{slug}" 
+        if (await redis_client.get(redis_key)) is not None:
+            await redis_client.delete(redis_key)
         
         #call a back task to write to database
         iiif_url = str(request.base_url) 

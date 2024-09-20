@@ -1,7 +1,6 @@
-from fastapi import APIRouter,Depends,File,UploadFile,HTTPException,BackgroundTasks,Request,Security
+from fastapi import APIRouter,Depends,File,UploadFile,BackgroundTasks,Request,Security
 from sqlalchemy.ext.asyncio import AsyncSession
 from db_config.sqlalchemy_async_connect import async_get_db
-import json
 from swift_config.swift_config import get_swift_connection
 from utils.upload_manifest import upload_manifest
 from repository.manifest import ManifestRepository
@@ -9,6 +8,7 @@ from utils.slug import get_slug
 from Azure_auth.auth import azure_scheme
 from Azure_auth.jwt_auth import jwt_auth
 from utils.get_manifest_conn import get_manifest_conn
+from utils.redis import get_redis_client
 
 
 router= APIRouter(
@@ -34,8 +34,12 @@ async def send_manifest(slug:str,request:Request,background_tasks: BackgroundTas
 
    
 @router.put("/file",dependencies=[Security(azure_scheme)])
-async def update_manifest(slug:str,request:Request,background_tasks: BackgroundTasks,file:UploadFile = File(...),db:AsyncSession = Depends(async_get_db)):
-    message = await upload_manifest(slug,request,background_tasks,file,db)   
+async def update_manifest(slug:str,request:Request,
+                          background_tasks: BackgroundTasks,
+                          file:UploadFile = File(...),
+                          db:AsyncSession = Depends(async_get_db),
+                          redis_client = Depends(get_redis_client)):
+    message = await upload_manifest(slug,request,background_tasks,file,db,redis_client)   
     return message
 
 

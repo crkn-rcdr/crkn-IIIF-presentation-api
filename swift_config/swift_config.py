@@ -2,8 +2,6 @@ import os
 from dotenv import load_dotenv
 import swiftclient
 import logging
-import aiohttp
-import asyncio
 
 
 # load .env file
