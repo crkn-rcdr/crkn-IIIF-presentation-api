@@ -2,7 +2,7 @@ version: '3.8'
 services:
   web:
     build: .  
-    image: mary747/presentation-api-v1:latest 
+    image: ${image_name} 
     
     dns:
       - 8.8.8.8
@@ -11,11 +11,11 @@ services:
       - "8000:8000"
    
     environment:
-      - REDIS_SERVER=redis-cache
-      - REDIS_PORT=6379
+      - REDIS_SERVER=${redis_server}
+      - REDIS_PORT=${port}
       
     depends_on:
-      - redis-cache
+      - ${redis_server}
     command:  "poetry run uvicorn main:app --reload "
       
   
@@ -25,8 +25,6 @@ services:
     hostname: redis-cache
     container_name: redis-cache
     restart: on-failure
-    ports:
-      - '6379:6379'
     command: redis-server
     volumes:
       - cache:/data
