@@ -25,7 +25,7 @@ services:
     hostname: redis-cache
     container_name: redis-cache
     restart: on-failure
-    command: redis-server
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - cache:/data
 
