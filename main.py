@@ -7,6 +7,7 @@ from fastapi.responses import RedirectResponse
 import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
+
 #config logger
 logging.basicConfig(level=logging.ERROR,format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("Presentation_logger")

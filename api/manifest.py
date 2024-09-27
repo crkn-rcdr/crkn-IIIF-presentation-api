@@ -28,18 +28,22 @@ async def get_manifest_by_slug(slug:str):
     return manifest      
 
 @router.put("/admin/file",dependencies=[Depends(jwt_auth)])
-async def send_manifest(slug:str,request:Request,background_tasks: BackgroundTasks,file:UploadFile = File(...),db:AsyncSession = Depends(async_get_db)):
-    message = await upload_manifest(slug,request,background_tasks,file,db)   
+async def send_manifest(slug:str,
+                        request:Request,
+                        file:UploadFile = File(...),
+                        db:AsyncSession = Depends(async_get_db),
+                        redis_client = Depends(get_redis_client)):
+    message = await upload_manifest(slug,request,file,db,redis_client)   
     return message
 
    
 @router.put("/file",dependencies=[Security(azure_scheme)])
-async def update_manifest(slug:str,request:Request,
-                          background_tasks: BackgroundTasks,
+async def update_manifest(slug:str,
+                          request:Request,
                           file:UploadFile = File(...),
                           db:AsyncSession = Depends(async_get_db),
                           redis_client = Depends(get_redis_client)):
-    message = await upload_manifest(slug,request,background_tasks,file,db,redis_client)   
+    message = await upload_manifest(slug,request,file,db,redis_client)   
     return message
 
 

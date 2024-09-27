@@ -12,59 +12,9 @@ from dotenv import load_dotenv
 async def manifest_task(manifest_dict: dict, db: AsyncSession,iiif_url:str,slug:str):
     # load .env file
     load_dotenv()
-    #container_name =  os.getenv("CONTAINER_NAME")
     # load logger which defined in main.py
     logger = logging.getLogger("Presentation_logger")
-    # Connect to Swift
-    #conn = get_swift_connection()
-
     manifest_id = "/".join(manifest_dict['id'].split('/')[-2:])
-    #canvas_content = manifest_dict['items']
-    #for data in conn.get_container(container_name)[1]:
-      #print('{0}\t{1}\t{2}'.format(data['name'], data['bytes'], data['last_modified']))
-    """
-    #extract values to upload files to swift
-    for canvas_item in canvas_content:
-         
-        canvas_id = "/".join(canvas_item['id'].split("/")[-2:])
-        canvas_name = f'{slug}/{canvas_id}/canvas.json'
-        canvas_content = canvas_item
-        #upload canvas to swift
-        conn.put_object(
-                container_name,
-                canvas_name,
-                contents=json.dumps(canvas_content)
-            )  
-        annotation_page_content = canvas_item['items']
-        annotation_page_id = "/".join(annotation_page_content[0]['id'].split("/")[-6:-4])
-        annotation_page_suffix = "/".join(annotation_page_content[0]['id'].split("/")[-1:])
-        annotation_page_name = f'{slug}/{canvas_id}/{annotation_page_id}/{annotation_page_suffix}/annotation_page.json'
-
-        #upload annotation_page to swift
-        conn.put_object(
-                container_name,
-                annotation_page_name,
-                contents=json.dumps(annotation_page_content)
-            )  
-        
-        #upload annotation to swift
-        for annotation in annotation_page_content:
-            #print(annotation)
-            annotation_id = "/".join(annotation['items'][0]['id'].split("/")[-4:])
-            #print(annotation_id)
-            annotation_name = f'{slug}/{annotation_page_id}/{annotation_id}/annotation.json'
-            annotation_content = annotation['items']
-        
-            conn.put_object(
-                container_name,
-                annotation_name,
-                contents=json.dumps(annotation_content)
-            )  
-            
-            
-    logger.info("All files uploaded successfully.")
-    print("uploaded all files") 
-    """
     #extract values from manifest_dict to tables
     context = manifest_dict.get("@context",['https://iiif.io/api/presentation/3/context.json'])
     context = [context] if isinstance(context, str) else context

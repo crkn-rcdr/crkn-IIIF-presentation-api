@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import BackgroundTasks, Request, UploadFile, HTTPException
+from fastapi import Request, UploadFile, HTTPException
 from utils.validator import Validator
 import json
 from swift_config.swift_config import get_swift_connection
@@ -36,7 +36,6 @@ async def acquire_lock(redis_client: Redis, key: str, timeout: int = 30):
 async def upload_manifest(
     slug: str,
     request: Request,
-    background_tasks: BackgroundTasks,
     file: UploadFile,
     db: AsyncSession,
     redis_client: Redis
@@ -46,11 +45,16 @@ async def upload_manifest(
 
     # Use the acquire_lock context manager to ensure exclusive access
     async with acquire_lock(redis_client, lock_key):
+        # Check if a file is uploaded
+        if file is None or file.filename == "":
+            raise HTTPException(status_code=400, detail="No file uploaded. Please upload a JSON file.")
         # Verify file format
         if file.content_type != "application/json":
             raise HTTPException(status_code=400, detail="Invalid file type. Only JSON files are allowed.")
         try:
             content = await file.read()
+            if content is None:
+                raise HTTPException(status_code=400, detail="Empty file is not allowed")
             # Validate the manifest, pass JSON string
             validator = Validator()
             result = json.loads(validator.check_manifest(content))
@@ -83,9 +87,9 @@ async def upload_manifest(
             if (await redis_client.get(redis_key)) is not None:
                 await redis_client.delete(redis_key)
 
-            # Call a background task to write to the database
+            # write to the database
             iiif_url = str(request.base_url)
-            background_tasks.add_task(back_task.manifest_task, manifest, db, iiif_url, slug)
+            await back_task.manifest_task (manifest,db,iiif_url, slug)
 
         except json.JSONDecodeError:
             raise HTTPException(status_code=400, detail="Invalid JSON content")

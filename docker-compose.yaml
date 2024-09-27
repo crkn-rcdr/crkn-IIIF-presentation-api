@@ -2,7 +2,7 @@ version: '3.8'
 services:
   web:
     build: .  
-    image: ${image_name} 
+    image: presentation_iiif
     
     dns:
       - 8.8.8.8
@@ -11,11 +11,11 @@ services:
       - "8000:8000"
    
     environment:
-      - REDIS_SERVER=${redis_server}
-      - REDIS_PORT=${port}
+      - REDIS_SERVER=${REDIS_SERVER}
+      - REDIS_PORT=${REDIS_PORT}
       
     depends_on:
-      - ${redis_server}
+      - ${REDIS_SERVER}
     command:  "poetry run uvicorn main:app --reload "
       
   
@@ -30,7 +30,5 @@ services:
       - cache:/data
 
 volumes:
- 
-
   cache:
     driver: local

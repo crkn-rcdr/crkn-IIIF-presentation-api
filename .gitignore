@@ -4,3 +4,5 @@ __pycache__/
 .env
 venv
 IIIF.sql
+DigiCertGlobalRootG2.crt.pem
+docker-compose.txt
