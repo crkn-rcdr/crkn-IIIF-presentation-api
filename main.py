@@ -1,24 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from Azure_auth.auth import azure_scheme,BACKEND_CORS_ORIGINS, OPENAPI_CLIENT_ID, SCOPE_NAME
+from Azure_auth.auth import BACKEND_CORS_ORIGINS, OPENAPI_CLIENT_ID, SCOPE_NAME
 from api.manifest import router as manifest_router
 from api.canvas import router as canvas_router
 from fastapi.responses import RedirectResponse
-import logging
-from contextlib import asynccontextmanager
-from typing import AsyncGenerator
-
-#config logger
-logging.basicConfig(level=logging.ERROR,format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("Presentation_logger")
-
-@asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """
-    Load OpenID config on startup.
-    """
-    await azure_scheme.openid_config.load_config()
-    yield
+from utils.lifespan_handler import lifespan
 app = FastAPI(
     swagger_ui_oauth2_redirect_url='/oauth2-redirect',
     swagger_ui_init_oauth={
@@ -40,7 +26,7 @@ app = FastAPI(
         "name": "Licensing",
         "url": "https://www.crkn-rcdr.ca/en/crkn-licensing-principles",
     },
-
+    lifespan=lifespan
 )
 if BACKEND_CORS_ORIGINS:
     app.add_middleware(

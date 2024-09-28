@@ -4,23 +4,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Request, UploadFile, HTTPException
 from utils.validator import Validator
 import json
-from swift_config.swift_config import get_swift_connection
 from utils import back_task
 from swiftclient.exceptions import ClientException
-import logging
-from utils.redis import get_redis_client
 from redis.asyncio import Redis
 from contextlib import asynccontextmanager
+import logging
 
 # Load .env file
 load_dotenv()
 container_name = os.getenv("CONTAINER_NAME")
-
-# Connect to Swift
-conn = get_swift_connection()
-
-# Load logger which defined in main.py
-logger = logging.getLogger("Presentation_logger")
+#config logger
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Create an async context manager for acquiring and releasing a Redis lock
 @asynccontextmanager
@@ -40,6 +35,13 @@ async def upload_manifest(
     db: AsyncSession,
     redis_client: Redis
 ):
+    # Access swift_session, swift_token, and swift_storage_url from app state
+    swift_session = request.app.state.swift_session
+    swift_token = request.app.state.swift_token
+    swift_storage_url = request.app.state.swift_storage_url
+
+    if not swift_token:
+        raise HTTPException(status_code=401, detail="Swift authentication token not found.")
     # Define the Redis lock key based on the slug
     lock_key = f"lock_manifest_{slug}"
 
@@ -76,11 +78,16 @@ async def upload_manifest(
                 )
 
             # Upload manifest to Swift
-            conn.put_object(
-                container_name,
-                manifest_name,
-                contents=content,
-            )
+            upload_url = f"{swift_storage_url}/{container_name}/{manifest_name}"
+            headers = {
+            "X-Auth-Token": swift_token,
+            "Content-Type": "application/json"
+            }
+            async with swift_session.put(upload_url,headers=headers,data=content,ssl=False) as resp:
+                if resp.status not in (201, 202, 204):
+                    text = await resp.text() 
+                    logger.info(f"File upload failed: {text}")       
+                    raise HTTPException(status_code=resp.status, detail=f"File upload failed")         
 
             # Check cache and delete if it exists
             redis_key = f"manifest_{slug}"
@@ -94,7 +101,7 @@ async def upload_manifest(
         except json.JSONDecodeError:
             raise HTTPException(status_code=400, detail="Invalid JSON content")
         except ClientException as e:
-            logger.error(f"Failed to upload to Swift: {str(e)}", exc_info=True)
+           
             raise HTTPException(status_code=500, detail="Failed to upload to Swift")
 
     return {"message": "Upload successfully", "data": manifest}

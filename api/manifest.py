@@ -1,4 +1,4 @@
-from fastapi import APIRouter,Depends,File,UploadFile,BackgroundTasks,Request,Security
+from fastapi import APIRouter,Depends,File,UploadFile,Request,Security
 from sqlalchemy.ext.asyncio import AsyncSession
 from db_config.sqlalchemy_async_connect import async_get_db
 from swift_config.swift_config import get_swift_connection
@@ -16,15 +16,15 @@ router= APIRouter(
 )
 
 @router.get("/manifest/manifest_id/{manifest_id:path}")
-async def get_manifest_by_id(manifest_id:str,db:AsyncSession = Depends(async_get_db)):
+async def get_manifest_by_id(manifest_id:str,request:Request,db:AsyncSession = Depends(async_get_db)):
     manifest_repo = ManifestRepository(db)
     slug = await get_slug(manifest_repo,manifest_id)
-    manifest = await get_manifest_conn(slug)
+    manifest = await get_manifest_conn(slug,request)
     return manifest
 
 @router.get("/manifest/slug/{slug}")
-async def get_manifest_by_slug(slug:str):
-    manifest = await get_manifest_conn(slug)
+async def get_manifest_by_slug(slug:str,request:Request):
+    manifest = await get_manifest_conn(slug,request)
     return manifest      
 
 @router.put("/admin/file",dependencies=[Depends(jwt_auth)])
