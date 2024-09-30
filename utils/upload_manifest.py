@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import Request, UploadFile, HTTPException
+from fastapi import Request, UploadFile, HTTPException,File
 from utils.validator import Validator
 import json
 from utils import back_task
@@ -28,7 +28,7 @@ async def acquire_lock(redis_client: Redis, key: str, timeout: int = 30):
     finally:
         await redis_client.delete(key)
 
-async def upload_manifest(
+async def upload_manifest_backend(
     slug: str,
     request: Request,
     file: UploadFile,
@@ -48,14 +48,14 @@ async def upload_manifest(
     # Use the acquire_lock context manager to ensure exclusive access
     async with acquire_lock(redis_client, lock_key):
         # Check if a file is uploaded
-        if file is None or file.filename == "":
-            raise HTTPException(status_code=400, detail="No file uploaded. Please upload a JSON file.")
+        if not file or file.filename == "":
+            raise HTTPException(status_code=400, detail="No file uploaded. Please upload a file.")
         # Verify file format
         if file.content_type != "application/json":
             raise HTTPException(status_code=400, detail="Invalid file type. Only JSON files are allowed.")
         try:
             content = await file.read()
-            if content is None:
+            if not content:
                 raise HTTPException(status_code=400, detail="Empty file is not allowed")
             # Validate the manifest, pass JSON string
             validator = Validator()

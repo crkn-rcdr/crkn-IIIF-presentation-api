@@ -1,8 +1,7 @@
-from fastapi import APIRouter,Depends,File,UploadFile,Request,Security
+from fastapi import APIRouter,Depends,File,UploadFile,Request,Security,HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from db_config.sqlalchemy_async_connect import async_get_db
-from swift_config.swift_config import get_swift_connection
-from utils.upload_manifest import upload_manifest
+from utils.upload_manifest import upload_manifest_backend
 from repository.manifest import ManifestRepository
 from utils.slug import get_slug
 from Azure_auth.auth import azure_scheme
@@ -33,7 +32,8 @@ async def send_manifest(slug:str,
                         file:UploadFile = File(...),
                         db:AsyncSession = Depends(async_get_db),
                         redis_client = Depends(get_redis_client)):
-    message = await upload_manifest(slug,request,file,db,redis_client)   
+    
+    message = await upload_manifest_backend(slug,request,file,db,redis_client)   
     return message
 
    
@@ -43,7 +43,7 @@ async def update_manifest(slug:str,
                           file:UploadFile = File(...),
                           db:AsyncSession = Depends(async_get_db),
                           redis_client = Depends(get_redis_client)):
-    message = await upload_manifest(slug,request,file,db,redis_client)   
+    message = await upload_manifest_backend(slug,request,file,db,redis_client)   
     return message
 
 

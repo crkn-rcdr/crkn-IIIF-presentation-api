@@ -1,8 +1,33 @@
 version: '3.8'
 services:
+  swift-storage:
+    image: openstackswift/saio
+    container_name: swift-storage
+    volumes:
+      - swift_data:/srv/swift
+    ports:
+    - "8080:8080"
+    restart: always
+    environment:
+      - SWIFT_USER=${SWIFT_USERNAME}
+      - SWIFT_KEY=${SWIFT_KEY}
+      - SWIFT_CONTAINER=${CONTAINER_NAME}
+
+  redis-cache:
+    image: redis
+    hostname: ${REDIS_SERVER}
+    container_name: ${REDIS_SERVER}
+    restart: on-failure
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+    - "6379:6379"
+    volumes:
+      - cache:/data
+
   web:
     build: .  
     image: presentation_iiif
+    container_name: fastapi_iiif
     
     dns:
       - 8.8.8.8
@@ -13,22 +38,15 @@ services:
     environment:
       - REDIS_SERVER=${REDIS_SERVER}
       - REDIS_PORT=${REDIS_PORT}
-      
-    depends_on:
-      - ${REDIS_SERVER}
-    command:  "poetry run uvicorn main:app --reload "
-      
-  
+      - SWIFT_STORAGE_URL=http://swift-storage:8080
 
-  redis-cache:
-    image: redis
-    hostname: redis-cache
-    container_name: redis-cache
-    restart: on-failure
-    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
-    volumes:
-      - cache:/data
+    depends_on:
+      - redis-cache
+      - swift-storage  
+    command:  ["sh", "-c", "until nc -z ${REDIS_SERVER} ${REDIS_PORT}; do echo 'Waiting for Redis...'; sleep 3; done; until nc -z swift-storage 8080; do echo 'Waiting for Swift...'; sleep 3; done; poetry run uvicorn main:app --reload --host 0.0.0.0"]
 
 volumes:
   cache:
+    driver: local
+  swift_data:
     driver: local

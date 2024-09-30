@@ -23,6 +23,7 @@ async def get_manifest_conn(slug:str,request: Request):
     """
     # Obtain Redis client directly
     redis_client = await get_redis_client()
+    logger.info(f"Connected to Redis server at {redis_client.connection_pool.connection_kwargs['host']}")
     # Access swift_session, swift_token, and swift_storage_url from app state
     swift_session = request.app.state.swift_session
     swift_token = request.app.state.swift_token
@@ -43,15 +44,15 @@ async def get_manifest_conn(slug:str,request: Request):
                 try:
                     # Attempt to parse the data as JSON
                     manifest_data = json.loads(manifest.decode('utf-8'))
-                    # Properly format the JSON with indentation
-                    return JSONResponse(content=manifest_data, status_code=200)
+                   
                 except json.JSONDecodeError:
                     # If not valid JSON, raise an error
                     logger.error("Retrieved content is not valid JSON format.")
                     raise HTTPException(status_code=400, detail="The file content is not valid JSON format.")
         # Cache the manifest in Redis and ensure the operation is awaited
+        logger.info(f"Caching manifest_{slug} in Redis.")
         await redis_client.set(f"manifest_{slug}", pickle.dumps(manifest_data))
-        return manifest_data
+        return JSONResponse(content=manifest_data, status_code=200)
     except Exception as e:
         logger.error(f"Error info: {str(e)}", exc_info=True)
         raise HTTPException(status_code=404, detail=f"Manifest not found")
