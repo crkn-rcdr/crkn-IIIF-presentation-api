@@ -7,7 +7,7 @@ from utils.slug import get_slug
 from Azure_auth.auth import azure_scheme
 from Azure_auth.jwt_auth import jwt_auth
 from utils.get_manifest_conn import get_manifest_conn
-from utils.redis import get_redis_client
+
 
 
 router= APIRouter(
@@ -30,10 +30,10 @@ async def get_manifest_by_slug(slug:str,request:Request):
 async def send_manifest(slug:str,
                         request:Request,
                         file:UploadFile = File(...),
-                        db:AsyncSession = Depends(async_get_db),
-                        redis_client = Depends(get_redis_client)):
+                        db:AsyncSession = Depends(async_get_db)
+                        ):
     
-    message = await upload_manifest_backend(slug,request,file,db,redis_client)   
+    message = await upload_manifest_backend(slug,request,file,db)   
     return message
 
    
@@ -41,9 +41,9 @@ async def send_manifest(slug:str,
 async def update_manifest(slug:str,
                           request:Request,
                           file:UploadFile = File(...),
-                          db:AsyncSession = Depends(async_get_db),
-                          redis_client = Depends(get_redis_client)):
-    message = await upload_manifest_backend(slug,request,file,db,redis_client)   
+                          db:AsyncSession = Depends(async_get_db)
+                          ):
+    message = await upload_manifest_backend(slug,request,file,db)   
     return message
 
 

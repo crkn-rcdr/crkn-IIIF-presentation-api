@@ -5,6 +5,7 @@ from typing import AsyncGenerator
 from dotenv import load_dotenv
 from Azure_auth.auth import azure_scheme
 import os
+import redis.asyncio as aioredis
 
 #config logger
 logging.basicConfig(level=logging.INFO)
@@ -16,6 +17,7 @@ swift_auth_url = os.getenv("SWIFT_AUTH_URL")
 swift_username = os.getenv("SWIFT_USERNAME")
 swift_key = os.getenv("SWIFT_KEY")
 container_name = os.getenv("CONTAINER_NAME")
+redis_url = os.getenv("REDIS_URL")
 
 #Global variables for storing authentication token and storage URL
 swift_token = None
@@ -25,22 +27,30 @@ swift_session = None
 @asynccontextmanager
 async def lifespan(app) -> AsyncGenerator[None,None]:
     """
-    Manage application lifespan events including startup and shutdown tasks.
-    """
+   # Manage application lifespan events including startup and shutdown tasks.
     global swift_token,swift_storage_url,swift_session
     swift_session = aiohttp.ClientSession()
+    """
     try:
         #load OPENID config
         await initialize_openid_config()
+        """
         #swift authentication
         swift_token, swift_storage_url = await initialize_swift()
         # Store swift_session, swift_token, and swift_storage_url in app state for later use
         app.state.swift_session = swift_session
         app.state.swift_token = swift_token
         app.state.swift_storage_url = swift_storage_url
+    """
+         # Initialize Redis connection
+        app.state.redis = aioredis.from_url(
+            redis_url,
+            decode_responses=True   # Decode to string format
+        )
         yield
     finally:
-        await close_swift_session()
+        await close_session(app)
+       
 
 async def initialize_openid_config():
     """
@@ -51,12 +61,12 @@ async def initialize_openid_config():
     except Exception as e:
         logger.error(f"Failed to load OpenID configuration: {e}")
         raise
-
+"""
 async def  initialize_swift():
     global swift_session,swift_storage_url,swift_token
-    """
-    Perform Swift authentication and initialize required containers.
-    """
+
+    #Perform Swift authentication and initialize required containers.
+
     headers = {
         "X-Auth-User":swift_username,
         "X-Auth-Key":swift_key
@@ -79,9 +89,9 @@ async def  initialize_swift():
         raise
 
 async def check_and_create_container():
-    """
-    Check if the container exists and create it if it does not.
-    """
+    
+    #Check if the container exists and create it if it does not.
+    
     container_url = f"{swift_storage_url}/{container_name}"
     async with swift_session.head(container_url, headers={"X-Auth-Token": swift_token}) as head_resp:
         if head_resp.status == 404:  
@@ -95,12 +105,17 @@ async def check_and_create_container():
                     raise Exception(f"Failed to create container: {text}")
         else:
             logger.info("Using existing container 'IIIF'.")
+"""   
+async def close_session(app):
+    """
+   # Close the aiohttp session and Redis connection when the application shuts down.
     
-async def close_swift_session():
-    """
-    Close the aiohttp session when the application shuts down.
-    """
     global swift_session
     if swift_session:
         await swift_session.close()
         logger.info("Closed aiohttp session.")
+    """
+    # Close Redis connection
+    if app.state.redis:
+        await app.state.redis.close()
+        logger.info("Closed Redis connection.")

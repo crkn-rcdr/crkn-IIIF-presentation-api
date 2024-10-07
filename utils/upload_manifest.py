@@ -9,10 +9,13 @@ from swiftclient.exceptions import ClientException
 from redis.asyncio import Redis
 from contextlib import asynccontextmanager
 import logging
+from swift_config.swift_config import get_swift_connection
 
 # Load .env file
 load_dotenv()
 container_name = os.getenv("CONTAINER_NAME")
+# Connect to Swift
+conn = get_swift_connection()
 #config logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -32,21 +35,24 @@ async def upload_manifest_backend(
     slug: str,
     request: Request,
     file: UploadFile,
-    db: AsyncSession,
-    redis_client: Redis
+    db: AsyncSession
 ):
     # Access swift_session, swift_token, and swift_storage_url from app state
+    """
     swift_session = request.app.state.swift_session
     swift_token = request.app.state.swift_token
     swift_storage_url = request.app.state.swift_storage_url
-
+    """
+    redis = request.app.state.redis
+    """
     if not swift_token:
         raise HTTPException(status_code=401, detail="Swift authentication token not found.")
+    """
     # Define the Redis lock key based on the slug
     lock_key = f"lock_manifest_{slug}"
 
     # Use the acquire_lock context manager to ensure exclusive access
-    async with acquire_lock(redis_client, lock_key):
+    async with acquire_lock(redis, lock_key):
         # Check if a file is uploaded
         if not file or file.filename == "":
             raise HTTPException(status_code=400, detail="No file uploaded. Please upload a file.")
@@ -78,6 +84,13 @@ async def upload_manifest_backend(
                 )
 
             # Upload manifest to Swift
+            conn.put_object(
+                container_name,
+                manifest_name,
+                contents=content,
+            )
+
+            """
             upload_url = f"{swift_storage_url}/{container_name}/{manifest_name}"
             headers = {
             "X-Auth-Token": swift_token,
@@ -88,11 +101,11 @@ async def upload_manifest_backend(
                     text = await resp.text() 
                     logger.info(f"File upload failed: {text}")       
                     raise HTTPException(status_code=resp.status, detail=f"File upload failed")         
-
+            """
             # Check cache and delete if it exists
             redis_key = f"manifest_{slug}"
-            if (await redis_client.get(redis_key)) is not None:
-                await redis_client.delete(redis_key)
+            if (await redis.get(redis_key)) is not None:
+                await redis.delete(redis_key)
 
             # write to the database
             iiif_url = str(request.base_url)
