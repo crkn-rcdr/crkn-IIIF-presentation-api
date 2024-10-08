@@ -22,26 +22,26 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Create and start virtual environment
+      - name: Install Poetry
         run: |
-          python -m venv venv
-          source venv/bin/activate
-      
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
       - name: Install dependencies
-        run: pip install -r requirements.txt
-        
+        run: |
+          poetry install --no-dev
+
       # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
 
       - name: Zip artifact for deployment
-        run: zip release.zip ./* -r
+        run: |
+          zip -r release.zip . -x "*.venv/*"
 
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
         with:
           name: python-app
-          path: |
-            release.zip
-            !venv/
+          path: release.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -50,7 +50,7 @@ jobs:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
-      id-token: write #This is required for requesting the JWT
+      id-token: write # This is required for requesting the JWT
 
     steps:
       - name: Download artifact from build job
@@ -61,13 +61,12 @@ jobs:
       - name: Unzip artifact for deployment
         run: unzip release.zip
 
-      
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_9C4AFE2B99D44B7DB1E77569D9210629 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_CA1A995CBB2E4490A30A734178BE4B7C }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_5E4C7BCB03754D22ABAED475AC3B4F13 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_6F06D0B95F65487F8C357DB8E7DEE621 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_1E54FF5893B24C8F83F41F5702594546 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_DB5E64C5EBB34285B8D219EAA0F212CC }}
 
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
@@ -75,4 +74,3 @@ jobs:
         with:
           app-name: 'PresentationAPI'
           slot-name: 'Production'
-          
