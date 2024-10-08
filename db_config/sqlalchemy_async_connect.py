@@ -3,13 +3,15 @@ from sqlalchemy.orm import declarative_base,sessionmaker
 import os
 from dotenv import load_dotenv
 import ssl
+from pathlib import Path
 
 # load .env file
 load_dotenv()
 
 DB_URL = os.getenv("DB_URL")
-cert_file = os.path.join(os.path.dirname(__file__), 'DigiCertGlobalRootG2.crt.pem')
-ssl_context = ssl.create_default_context()#ssl.create_default_context(cafile=cert_file)
+cert_file = Path(__file__).resolve().parent.parent / 'DigiCertGlobalRootG2.crt.pem'
+
+ssl_context = ssl.create_default_context(cafile=str(cert_file))
 engine = create_async_engine(
                             DB_URL,
                             future=True,
