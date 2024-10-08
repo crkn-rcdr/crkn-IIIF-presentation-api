@@ -10,6 +10,7 @@ from redis.asyncio import Redis
 from contextlib import asynccontextmanager
 import logging
 from swift_config.swift_config import get_swift_connection
+import io
 
 # Load .env file
 load_dotenv()
@@ -63,6 +64,7 @@ async def upload_manifest_backend(
             content = await file.read()
             if not content:
                 raise HTTPException(status_code=400, detail="Empty file is not allowed")
+       
             # Validate the manifest, pass JSON string
             validator = Validator()
             result = json.loads(validator.check_manifest(content))
@@ -82,13 +84,16 @@ async def upload_manifest_backend(
                     status_code=400,
                     detail=f"The following keys have empty values: {empty_keys}. Please provide values or remove the keys."
                 )
-
+            
             # Upload manifest to Swift
+            # Reset file-like object pointer to the beginning
+         
             conn.put_object(
                 container_name,
                 manifest_name,
                 contents=content,
             )
+       
 
             """
             upload_url = f"{swift_storage_url}/{container_name}/{manifest_name}"
@@ -115,6 +120,6 @@ async def upload_manifest_backend(
             raise HTTPException(status_code=400, detail="Invalid JSON content")
         except ClientException as e:
            
-            raise HTTPException(status_code=500, detail="Failed to upload to Swift")
+            raise HTTPException(status_code=500, detail=f"Failed to upload to Swift {e}")
 
     return {"message": "Upload successfully", "data": manifest}

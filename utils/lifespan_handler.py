@@ -45,7 +45,8 @@ async def lifespan(app) -> AsyncGenerator[None,None]:
          # Initialize Redis connection
         app.state.redis = aioredis.from_url(
             redis_url,
-            decode_responses=True   # Decode to string format
+            decode_responses=False  
+            
         )
         yield
     finally:
