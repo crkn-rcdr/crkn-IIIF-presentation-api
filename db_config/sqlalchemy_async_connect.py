@@ -8,7 +8,8 @@ import ssl
 load_dotenv()
 
 DB_URL = os.getenv("DB_URL")
-ssl_context = ssl.create_default_context(cafile="DigiCertGlobalRootG2.crt.pem")
+cert_file = os.path.join(os.path.dirname(__file__), 'DigiCertGlobalRootG2.crt.pem')
+ssl_context = ssl.create_default_context(cafile=cert_file)
 engine = create_async_engine(
                             DB_URL,
                             future=True,
