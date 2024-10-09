@@ -2,7 +2,7 @@
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 # More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
 
-name: Build and deploy Python app to Azure Web App - crkn-iiif-presentation-api
+name: Build and deploy Python app to Azure Web App - PresentationAPI
 
 on:
   push:
@@ -21,14 +21,15 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
-      - name: Create and start virtual environment
+  
+      - name: Install Poetry
         run: |
-          python -m venv venv
-          source venv/bin/activate
-      
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          poetry install --no-dev
         
       # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
 
@@ -65,14 +66,14 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_AD95986BE5EA4EEFB6EFC3AC45701233 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_622B65C516424CF2B218904EB1B18A1A }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_B890BB40D7554D32B240722F018AE917 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_E1F1C1081B6A4C9FBF18AC9470A3607F }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_7A7C48FB4730461892A36462BA323C9B }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_077124EF1AD34E64A4DDF33FC2C5F685 }}
 
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
-          app-name: 'crkn-iiif-presentation-api'
+          app-name: 'PresentationAPI'
           slot-name: 'Production'
           
