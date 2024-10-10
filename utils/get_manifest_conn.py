@@ -32,13 +32,14 @@ async def get_manifest_conn(slug:str,request: Request):
     if not swift_token or not swift_storage_url:
         raise HTTPException(status_code=401, detail="Authentication is not complete or failed.")
     """
-    redis = request.app.state.redis
-    manifest_name = f'{slug}/manifest.json'
-    if (cached_profile := await redis.get(f"manifest_{slug}")) is not None:
-        return pickle.loads(cached_profile)
-    _,manifest = conn.get_object(container_name, manifest_name)
-    manifest_data = json.loads(manifest)
+   
     try:
+        redis = request.app.state.redis
+        manifest_name = f'{slug}/manifest.json'
+        if (cached_profile := await redis.get(f"manifest_{slug}")) is not None:
+            return pickle.loads(cached_profile)
+        _,manifest = conn.get_object(container_name, manifest_name)
+        manifest_data = json.loads(manifest)
         """
         file_url = f"{swift_storage_url}/{container_name}/{manifest_name}"
         headers = {
