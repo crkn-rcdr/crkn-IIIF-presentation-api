@@ -12,6 +12,7 @@ async def get_redis_client():
     redis_client = await Redis.from_url(
         f"redis://{redis_server}:{redis_port}/0",
         encoding="utf-8",
-        decode_responses=False
+        decode_responses=False,
+        ssl=True
     )
     return redis_client
