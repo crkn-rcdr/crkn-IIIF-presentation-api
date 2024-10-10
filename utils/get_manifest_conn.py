@@ -15,7 +15,7 @@ container_name = os.getenv("CONTAINER_NAME")
 conn = get_swift_connection()
 
 #config logger
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO,handlers=[logging.StreamHandler])
 logger = logging.getLogger(__name__)
 
 
@@ -34,10 +34,15 @@ async def get_manifest_conn(slug:str,request: Request):
     """
    
     try:
+        #Access Swift and Redis objects from the app's state
         redis = request.app.state.redis
         manifest_name = f'{slug}/manifest.json'
+
+        #Check Redis cache
         if (cached_profile := await redis.get(f"manifest_{slug}")) is not None:
             return pickle.loads(cached_profile)
+        
+        #Fetch from Swift storage
         _,manifest = conn.get_object(container_name, manifest_name)
         manifest_data = json.loads(manifest)
         """
@@ -57,10 +62,11 @@ async def get_manifest_conn(slug:str,request: Request):
                     logger.error("Retrieved content is not valid JSON format.")
                     raise HTTPException(status_code=400, detail="The file content is not valid JSON format.")
         """
-        # Cache the manifest in Redis and ensure the operation is awaited
+        # Cache the manifest in Redis 
         logger.info(f"Caching manifest_{slug} in Redis.")
         await redis.set(f"manifest_{slug}", pickle.dumps(manifest_data))
         return JSONResponse(content=manifest_data, status_code=200)
+    
     except Exception as e:
         logger.error(f"Error info: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=404, detail=f"Manifest not found")
+        raise HTTPException(status_code=404, detail=f"Manifest not found for slug: {slug}")
