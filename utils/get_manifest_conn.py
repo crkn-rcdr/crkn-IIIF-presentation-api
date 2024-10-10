@@ -3,7 +3,7 @@ from fastapi import HTTPException,Request
 import logging
 import os
 import json
-
+from swiftclient import ClientException
 import pickle
 from dotenv import load_dotenv
 from fastapi.responses import JSONResponse
@@ -15,7 +15,7 @@ container_name = os.getenv("CONTAINER_NAME")
 conn = get_swift_connection()
 
 #config logger
-logging.basicConfig(level=logging.INFO,handlers=[logging.StreamHandler])
+logging.basicConfig(level=logging.INFO,handlers=[logging.StreamHandler()])
 logger = logging.getLogger(__name__)
 
 
