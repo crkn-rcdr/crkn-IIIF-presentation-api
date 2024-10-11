@@ -11,14 +11,16 @@ from contextlib import asynccontextmanager
 import logging
 from swift_config.swift_config import get_swift_connection
 import io
+from urllib.parse import urlparse
 
 # Load .env file
 load_dotenv()
 container_name = os.getenv("CONTAINER_NAME")
 # Connect to Swift
 conn = get_swift_connection()
+
 #config logger
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO,handlers=[logging.StreamHandler()])
 logger = logging.getLogger(__name__)
 
 # Create an async context manager for acquiring and releasing a Redis lock
@@ -76,7 +78,11 @@ async def upload_manifest_backend(
 
             manifest = json.loads(content)
             manifest_name = f'{slug}/manifest.json'
-
+            parsed_url = urlparse(manifest['id'])
+            base_url = str(request.base_url)
+            manifest_id = f"{base_url.rstrip('/')}{parsed_url.path}"
+            manifest['id']=manifest_id
+            updated_manifest = json.dumps(manifest)
             # Check for empty values and raise error if any are found
             empty_keys = [key for key, value in manifest.items() if not value]
             if empty_keys:
@@ -91,7 +97,8 @@ async def upload_manifest_backend(
             conn.put_object(
                 container_name,
                 manifest_name,
-                contents=content,
+                contents=updated_manifest,
+                content_type='application/json'
             )
        
 

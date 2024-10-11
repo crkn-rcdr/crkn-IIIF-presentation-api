@@ -14,17 +14,18 @@ router= APIRouter(
     tags=["Manifest"],
 )
 
-@router.get("/manifest/manifest_id/{manifest_id:path}")
+@router.get("/manifest/slug/{slug}")
+async def get_manifest_by_slug(slug:str,request:Request):
+    manifest = await get_manifest_conn(slug,request)
+    return manifest   
+
+@router.get("/manifest/{manifest_id:path}")
 async def get_manifest_by_id(manifest_id:str,request:Request,db:AsyncSession = Depends(async_get_db)):
     manifest_repo = ManifestRepository(db)
     slug = await get_slug(manifest_repo,manifest_id)
     manifest = await get_manifest_conn(slug,request)
     return manifest
 
-@router.get("/manifest/slug/{slug}")
-async def get_manifest_by_slug(slug:str,request:Request):
-    manifest = await get_manifest_conn(slug,request)
-    return manifest      
 
 @router.put("/admin/file",dependencies=[Depends(jwt_auth)])
 async def send_manifest(slug:str,

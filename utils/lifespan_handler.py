@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from Azure_auth.auth import azure_scheme
 import os
 import redis.asyncio as aioredis
+from fastapi import HTTPException
 
 #config logger
 logging.basicConfig(level=logging.INFO)
@@ -49,6 +50,11 @@ async def lifespan(app) -> AsyncGenerator[None,None]:
             
         )
         yield
+        
+    except Exception as e:
+        logger.error(f"Error during lifespan setup: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to connect storage or redis servers")
+    
     finally:
         await close_session(app)
        
