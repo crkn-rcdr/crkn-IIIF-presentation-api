@@ -83,6 +83,7 @@ async def upload_manifest_backend(
             manifest_id = f"{base_url.rstrip('/')}{parsed_url.path}"
             manifest['id']=manifest_id
             updated_manifest = json.dumps(manifest)
+         
             # Check for empty values and raise error if any are found
             empty_keys = [key for key, value in manifest.items() if not value]
             if empty_keys:

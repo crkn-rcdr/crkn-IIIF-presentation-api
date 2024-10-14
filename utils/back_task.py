@@ -7,14 +7,33 @@ from models.data.presentation_models import Manifest,Canvas,AnnotationPage,Annot
 import logging
 from swift_config.swift_config import get_swift_connection
 from dotenv import load_dotenv
-
-
+import os
+import json
 async def manifest_task(manifest_dict: dict, db: AsyncSession,iiif_url:str,slug:str):
     # load .env file
     load_dotenv()
-    # load logger which defined in main.py
-    logger = logging.getLogger("Presentation_logger")
+    container_name =  os.getenv("CONTAINER_NAME")
+    #config logger
+    logging.basicConfig(level=logging.INFO,handlers=[logging.StreamHandler()])
+    logger = logging.getLogger(__name__)
+    # Connect to Swift
+    conn = get_swift_connection()
     manifest_id = "/".join(manifest_dict['id'].split('/')[-2:])
+    canvas_content = manifest_dict['items']
+   
+    #extract values to upload files to swift
+    for canvas_item in canvas_content:
+         
+        canvas_id = "/".join(canvas_item['id'].split("/")[-2:])
+        canvas_name = f'{slug}/{canvas_id}/canvas.json'
+        canvas_content = canvas_item
+        #upload canvas to swift
+        conn.put_object(
+                container_name,
+                canvas_name,
+                contents=json.dumps(canvas_content)
+            )  
+ 
     #extract values from manifest_dict to tables
     context = manifest_dict.get("@context",['https://iiif.io/api/presentation/3/context.json'])
     context = [context] if isinstance(context, str) else context
