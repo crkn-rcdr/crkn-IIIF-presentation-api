@@ -9,6 +9,8 @@ from swift_config.swift_config import get_swift_connection
 from dotenv import load_dotenv
 import os
 import json
+from urllib.parse import urlparse
+
 async def manifest_task(manifest_dict: dict, db: AsyncSession,iiif_url:str,slug:str):
     # load .env file
     load_dotenv()
@@ -27,11 +29,15 @@ async def manifest_task(manifest_dict: dict, db: AsyncSession,iiif_url:str,slug:
         canvas_id = "/".join(canvas_item['id'].split("/")[-2:])
         canvas_name = f'{slug}/{canvas_id}/canvas.json'
         canvas_content = canvas_item
+        parsed_url = urlparse(canvas_item['id'])
+        canvas_id = f"{iiif_url.rstrip('/')}{parsed_url.path}"
+        canvas_item['id']=canvas_id
+        updated_canvas_content = json.dumps(canvas_content)
         #upload canvas to swift
         conn.put_object(
                 container_name,
                 canvas_name,
-                contents=json.dumps(canvas_content)
+                contents=updated_canvas_content
             )  
  
     #extract values from manifest_dict to tables
