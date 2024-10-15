@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 import logging
 from swift_config.swift_config import get_swift_connection
 import io
-from urllib.parse import urlparse
+from urllib.parse import urlparse,urlunparse
 
 # Load .env file
 load_dotenv()
@@ -80,7 +80,10 @@ async def upload_manifest_backend(
             manifest_name = f'{slug}/manifest.json'
             parsed_url = urlparse(manifest['id'])
             base_url = str(request.base_url)
-            manifest_id = f"{base_url.rstrip('/')}{parsed_url.path}"
+            # Force the scheme to 'https'
+            parsed_base_url = urlparse(base_url)
+            https_base_url = urlunparse(('https', parsed_base_url.netloc, parsed_base_url.path, '', '', ''))
+            manifest_id = f"{https_base_url.rstrip('/')}{parsed_url.path}"
             manifest['id']=manifest_id
             
             # Check for empty values and raise error if any are found
@@ -98,8 +101,8 @@ async def upload_manifest_backend(
                 canvas_id = "/".join(canvas_item['id'].split("/")[-2:])
                 canvas_name = f'{slug}/{canvas_id}/canvas.json'
                 canvas_content = canvas_item
-                parsed_url = urlparse(canvas_item['id'])
-                canvas_id = f"{base_url.rstrip('/')}{parsed_url.path}"
+                canvas_parsed_url = urlparse(canvas_item['id'])
+                canvas_id = f"{https_base_url.rstrip('/')}{canvas_parsed_url.path}"
                 canvas_item['id']=canvas_id
                 new_manifest_items.append(canvas_content)
                 updated_canvas_content = json.dumps(canvas_content)
