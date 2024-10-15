@@ -91,10 +91,28 @@ async def upload_manifest_backend(
                     status_code=400,
                     detail=f"The following keys have empty values: {empty_keys}. Please provide values or remove the keys."
                 )
-            
+            canvas_content = manifest['items']
+            new_manifest_items = []
+            #extract values to upload files to swift
+            for canvas_item in canvas_content:
+                
+                canvas_id = "/".join(canvas_item['id'].split("/")[-2:])
+                canvas_name = f'{slug}/{canvas_id}/canvas.json'
+                canvas_content = canvas_item
+                parsed_url = urlparse(canvas_item['id'])
+                canvas_id = f"{base_url.rstrip('/')}{parsed_url.path}"
+                canvas_item['id']=canvas_id
+                new_manifest_items.append(canvas_content)
+                updated_canvas_content = json.dumps(canvas_content)
+                #upload canvas to swift
+                conn.put_object(
+                        container_name,
+                        canvas_name,
+                        contents=updated_canvas_content
+                    )  
             # Upload manifest to Swift
             # Reset file-like object pointer to the beginning
-         
+            manifest['items'] = new_manifest_items
             conn.put_object(
                 container_name,
                 manifest_name,
