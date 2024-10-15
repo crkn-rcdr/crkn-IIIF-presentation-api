@@ -28,10 +28,15 @@ app = FastAPI(
     },
     lifespan=lifespan
 )
+origins = [
+    BACKEND_CORS_ORIGINS,
+    'https://manifest-editor.digirati.services/',
+    'https://mirador-dev.netlify.app/__tests__/integration/mirador/'
+]
 if BACKEND_CORS_ORIGINS:
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=BACKEND_CORS_ORIGINS,
+        allow_origins=origins,
         allow_credentials=True,
         allow_methods=['*'],
         allow_headers=['*'],
