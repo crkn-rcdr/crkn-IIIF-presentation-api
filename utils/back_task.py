@@ -12,34 +12,11 @@ import json
 from urllib.parse import urlparse
 
 async def manifest_task(manifest_dict: dict, db: AsyncSession,iiif_url:str,slug:str):
-    # load .env file
-    load_dotenv()
-    container_name =  os.getenv("CONTAINER_NAME")
     #config logger
     logging.basicConfig(level=logging.INFO,handlers=[logging.StreamHandler()])
     logger = logging.getLogger(__name__)
-    # Connect to Swift
-    conn = get_swift_connection()
+
     manifest_id = "/".join(manifest_dict['id'].split('/')[-2:])
-    canvas_content = manifest_dict['items']
-   
-    #extract values to upload files to swift
-    for canvas_item in canvas_content:
-         
-        canvas_id = "/".join(canvas_item['id'].split("/")[-2:])
-        canvas_name = f'{slug}/{canvas_id}/canvas.json'
-        canvas_content = canvas_item
-        parsed_url = urlparse(canvas_item['id'])
-        canvas_id = f"{iiif_url.rstrip('/')}{parsed_url.path}"
-        canvas_item['id']=canvas_id
-        updated_canvas_content = json.dumps(canvas_content)
-        #upload canvas to swift
-        conn.put_object(
-                container_name,
-                canvas_name,
-                contents=updated_canvas_content
-            )  
- 
     #extract values from manifest_dict to tables
     context = manifest_dict.get("@context",['https://iiif.io/api/presentation/3/context.json'])
     context = [context] if isinstance(context, str) else context

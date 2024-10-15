@@ -82,8 +82,7 @@ async def upload_manifest_backend(
             base_url = str(request.base_url)
             manifest_id = f"{base_url.rstrip('/')}{parsed_url.path}"
             manifest['id']=manifest_id
-            updated_manifest = json.dumps(manifest)
-         
+            
             # Check for empty values and raise error if any are found
             empty_keys = [key for key, value in manifest.items() if not value]
             if empty_keys:
@@ -93,7 +92,7 @@ async def upload_manifest_backend(
                 )
             canvas_content = manifest['items']
             new_manifest_items = []
-            #extract values to upload files to swift
+            #extract canvas values to upload files to swift
             for canvas_item in canvas_content:
                 
                 canvas_id = "/".join(canvas_item['id'].split("/")[-2:])
@@ -108,11 +107,12 @@ async def upload_manifest_backend(
                 conn.put_object(
                         container_name,
                         canvas_name,
-                        contents=updated_canvas_content
+                        contents=updated_canvas_content,
+                        content_type='application/json'
                     )  
             # Upload manifest to Swift
-            # Reset file-like object pointer to the beginning
             manifest['items'] = new_manifest_items
+            updated_manifest = json.dumps(manifest)
             conn.put_object(
                 container_name,
                 manifest_name,
