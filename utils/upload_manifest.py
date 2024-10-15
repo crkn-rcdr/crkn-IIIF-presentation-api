@@ -95,6 +95,7 @@ async def upload_manifest_backend(
                 )
             canvas_content = manifest['items']
             new_manifest_items = []
+            """
             #extract canvas values to upload files to swift
             for canvas_item in canvas_content:
                 
@@ -113,6 +114,7 @@ async def upload_manifest_backend(
                         contents=updated_canvas_content,
                         content_type='application/json'
                     )  
+            """
             # Upload manifest to Swift
             manifest['items'] = new_manifest_items
             updated_manifest = json.dumps(manifest)
