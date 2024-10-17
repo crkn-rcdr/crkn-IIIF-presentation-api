@@ -95,19 +95,27 @@ async def upload_manifest_backend(
                 )
             canvas_content = manifest['items']
             new_manifest_items = []
-            """
+            
             #extract canvas values to upload files to swift
             for canvas_item in canvas_content:
                 
                 canvas_id = "/".join(canvas_item['id'].split("/")[-2:])
                 canvas_name = f'{slug}/{canvas_id}/canvas.json'
-                canvas_content = canvas_item
+                #canvas_content = canvas_item
                 canvas_parsed_url = urlparse(canvas_item['id'])
+                target_parsed_url = urlparse(canvas_item['items'][0]['items'][0]['target'])
+                annotation_page_parsed_url = urlparse(canvas_item['items'][0]['id'])
+                annotation_parsed_url = urlparse(canvas_item['items'][0]['items'][0]['id'])
                 canvas_id = f"{https_base_url.rstrip('/')}{canvas_parsed_url.path}"
+                target = f"{https_base_url.rstrip('/')}{target_parsed_url.path}"
+                annotation_page_id = f"{https_base_url.rstrip('/')}{annotation_page_parsed_url.path}"
+                annotation_id = f"{https_base_url.rstrip('/')}{annotation_parsed_url.path}"
                 canvas_item['id']=canvas_id
-                new_manifest_items.append(canvas_content)
-                
-                #updated_canvas_content = json.dumps(canvas_content)
+                canvas_item['items'][0]['items'][0]['target'] = target
+                canvas_item['items'][0]['id'] = annotation_page_id
+                canvas_item['items'][0]['items'][0]['id'] = annotation_id
+                new_manifest_items.append(canvas_item)
+                updated_canvas_content = json.dumps(canvas_item)
                 #upload canvas to swift
                 conn.put_object(
                         container_name,
@@ -115,9 +123,10 @@ async def upload_manifest_backend(
                         contents=updated_canvas_content,
                         content_type='application/json'
                     )  
-                """
+           
+    
             # Upload manifest to Swift
-            #manifest['items'] = new_manifest_items
+            manifest['items'] = new_manifest_items
             updated_manifest = json.dumps(manifest)
             conn.put_object(
                 container_name,
