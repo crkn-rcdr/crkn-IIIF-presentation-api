@@ -80,10 +80,12 @@ async def upload_manifest_backend(
             manifest_name = f'{slug}/manifest.json'
             parsed_url = urlparse(manifest['id'])
             base_url = str(request.base_url)
-            # Force the scheme to 'https'
+            # Force the scheme to 'https',could remove line 83-84 when go to production
             parsed_base_url = urlparse(base_url)
             https_base_url = urlunparse(('https', parsed_base_url.netloc, parsed_base_url.path, '', '', ''))
-            manifest_id = f"{https_base_url.rstrip('/')}{parsed_url.path}"
+            #manifest_id = f"{https_base_url.rstrip('/')}{parsed_url.path}"
+            manifest_id = f"{base_url.rstrip('/')}{parsed_url.path}"
+
             manifest['id']=manifest_id
             
             # Check for empty values and raise error if any are found
@@ -106,10 +108,14 @@ async def upload_manifest_backend(
                 target_parsed_url = urlparse(canvas_item['items'][0]['items'][0]['target'])
                 annotation_page_parsed_url = urlparse(canvas_item['items'][0]['id'])
                 annotation_parsed_url = urlparse(canvas_item['items'][0]['items'][0]['id'])
-                canvas_id = f"{https_base_url.rstrip('/')}{canvas_parsed_url.path}"
-                target = f"{https_base_url.rstrip('/')}{target_parsed_url.path}"
-                annotation_page_id = f"{https_base_url.rstrip('/')}{annotation_page_parsed_url.path}"
-                annotation_id = f"{https_base_url.rstrip('/')}{annotation_parsed_url.path}"
+                #canvas_id = f"{https_base_url.rstrip('/')}{canvas_parsed_url.path}"
+                canvas_id = f"{base_url.rstrip('/')}{canvas_parsed_url.path}"
+                #target = f"{https_base_url.rstrip('/')}{target_parsed_url.path}"
+                target = f"{base_url.rstrip('/')}{target_parsed_url.path}"
+                #annotation_page_id = f"{https_base_url.rstrip('/')}{annotation_page_parsed_url.path}"
+                annotation_page_id = f"{base_url.rstrip('/')}{annotation_page_parsed_url.path}"
+                #annotation_id = f"{https_base_url.rstrip('/')}{annotation_parsed_url.path}"
+                annotation_id = f"{base_url.rstrip('/')}{annotation_parsed_url.path}"
                 canvas_item['id']=canvas_id
                 canvas_item['items'][0]['items'][0]['target'] = target
                 canvas_item['items'][0]['id'] = annotation_page_id
