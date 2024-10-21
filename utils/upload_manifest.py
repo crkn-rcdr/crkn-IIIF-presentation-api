@@ -35,7 +35,6 @@ async def acquire_lock(redis_client: Redis, key: str, timeout: int = 30):
         await redis_client.delete(key)
 
 async def upload_manifest_backend(
-    slug: str,
     request: Request,
     file: UploadFile,
     db: AsyncSession
@@ -51,22 +50,34 @@ async def upload_manifest_backend(
     if not swift_token:
         raise HTTPException(status_code=401, detail="Swift authentication token not found.")
     """
-    # Define the Redis lock key based on the slug
-    lock_key = f"lock_manifest_{slug}"
-
-    # Use the acquire_lock context manager to ensure exclusive access
-    async with acquire_lock(redis, lock_key):
-        # Check if a file is uploaded
-        if not file or file.filename == "":
-            raise HTTPException(status_code=400, detail="No file uploaded. Please upload a file.")
-        # Verify file format
-        if file.content_type != "application/json":
-            raise HTTPException(status_code=400, detail="Invalid file type. Only JSON files are allowed.")
+    try:
         try:
             content = await file.read()
+        except Exception as e:
+            logger.error(f"Error reading file: {e}")
+            raise HTTPException(status_code=500, detail="Failed to read the uploaded file.")
+        manifest = json.loads(content)
+        try:
+            slug = manifest['metadata'][0]['value']['none'][0]
+        except Exception as e:
+            logger.error(f"Error extracting slug from manifest: {e}")
+            raise HTTPException(status_code=400, detail="Invalid manifest structure: missing slug.")
+        
+        # Define the Redis lock key based on the slug
+        lock_key = f"lock_manifest_{slug}"
+
+        # Use the acquire_lock context manager to ensure exclusive access
+        async with acquire_lock(redis, lock_key):
+            # Check if a file is uploaded
+            if not file or file.filename == "":
+                raise HTTPException(status_code=400, detail="No file uploaded. Please upload a file.")
+            # Verify file format
+            if file.content_type != "application/json":
+                raise HTTPException(status_code=400, detail="Invalid file type. Only JSON files are allowed.")
+         
             if not content:
                 raise HTTPException(status_code=400, detail="Empty file is not allowed")
-       
+    
             # Validate the manifest, pass JSON string
             validator = Validator()
             result = json.loads(validator.check_manifest(content))
@@ -76,16 +87,10 @@ async def upload_manifest_backend(
                     "data": {"error": result['error'], "errorList": result['errorList']}
                 }
 
-            manifest = json.loads(content)
             manifest_name = f'{slug}/manifest.json'
             parsed_url = urlparse(manifest['id'])
             base_url = str(request.base_url)
-            # Force the scheme to 'https',could remove line 83-84 when go to production
-            parsed_base_url = urlparse(base_url)
-            https_base_url = urlunparse(('https', parsed_base_url.netloc, parsed_base_url.path, '', '', ''))
-            #manifest_id = f"{https_base_url.rstrip('/')}{parsed_url.path}"
             manifest_id = f"{base_url.rstrip('/')}{parsed_url.path}"
-
             manifest['id']=manifest_id
             
             # Check for empty values and raise error if any are found
@@ -97,24 +102,18 @@ async def upload_manifest_backend(
                 )
             canvas_content = manifest['items']
             new_manifest_items = []
-            
             #extract canvas values to upload files to swift
             for canvas_item in canvas_content:
                 
                 canvas_id = "/".join(canvas_item['id'].split("/")[-2:])
                 canvas_name = f'{slug}/{canvas_id}/canvas.json'
-                #canvas_content = canvas_item
                 canvas_parsed_url = urlparse(canvas_item['id'])
                 target_parsed_url = urlparse(canvas_item['items'][0]['items'][0]['target'])
                 annotation_page_parsed_url = urlparse(canvas_item['items'][0]['id'])
                 annotation_parsed_url = urlparse(canvas_item['items'][0]['items'][0]['id'])
-                #canvas_id = f"{https_base_url.rstrip('/')}{canvas_parsed_url.path}"
                 canvas_id = f"{base_url.rstrip('/')}{canvas_parsed_url.path}"
-                #target = f"{https_base_url.rstrip('/')}{target_parsed_url.path}"
                 target = f"{base_url.rstrip('/')}{target_parsed_url.path}"
-                #annotation_page_id = f"{https_base_url.rstrip('/')}{annotation_page_parsed_url.path}"
                 annotation_page_id = f"{base_url.rstrip('/')}{annotation_page_parsed_url.path}"
-                #annotation_id = f"{https_base_url.rstrip('/')}{annotation_parsed_url.path}"
                 annotation_id = f"{base_url.rstrip('/')}{annotation_parsed_url.path}"
                 canvas_item['id']=canvas_id
                 canvas_item['items'][0]['items'][0]['target'] = target
@@ -122,6 +121,7 @@ async def upload_manifest_backend(
                 canvas_item['items'][0]['items'][0]['id'] = annotation_id
                 new_manifest_items.append(canvas_item)
                 updated_canvas_content = json.dumps(canvas_item)
+                """
                 #upload canvas to swift
                 conn.put_object(
                         container_name,
@@ -129,8 +129,8 @@ async def upload_manifest_backend(
                         contents=updated_canvas_content,
                         content_type='application/json'
                     )  
-           
-    
+        
+                """
             # Upload manifest to Swift
             manifest['items'] = new_manifest_items
             updated_manifest = json.dumps(manifest)
@@ -140,7 +140,7 @@ async def upload_manifest_backend(
                 contents=updated_manifest,
                 content_type='application/json'
             )
-       
+    
 
             """
             upload_url = f"{swift_storage_url}/{container_name}/{manifest_name}"
@@ -163,10 +163,10 @@ async def upload_manifest_backend(
             iiif_url = str(request.base_url)
             await back_task.manifest_task (manifest,db,iiif_url, slug)
 
-        except json.JSONDecodeError:
-            raise HTTPException(status_code=400, detail="Invalid JSON content")
-        except ClientException as e:
-           
-            raise HTTPException(status_code=500, detail=f"Failed to upload to Swift {e}")
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON content")
+    
+    except ClientException as e:
+        raise HTTPException(status_code=500, detail=f"Failed to upload to Swift {e}")
 
     return {"message": "Upload successfully", "data": manifest}

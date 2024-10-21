@@ -26,25 +26,22 @@ async def get_manifest_by_id(manifest_id:str,request:Request,db:AsyncSession = D
     manifest = await get_manifest_conn(slug,request)
     return manifest
 
-
 @router.put("/admin/file",dependencies=[Depends(jwt_auth)])
-async def send_manifest(slug:str,
-                        request:Request,
+async def send_manifest(request:Request,
                         file:UploadFile = File(...),
                         db:AsyncSession = Depends(async_get_db)
                         ):
     
-    message = await upload_manifest_backend(slug,request,file,db)   
+    message = await upload_manifest_backend(request,file,db)   
     return message
 
    
 @router.put("/file",dependencies=[Security(azure_scheme)])
-async def update_manifest(slug:str,
-                          request:Request,
+async def update_manifest(request:Request,
                           file:UploadFile = File(...),
                           db:AsyncSession = Depends(async_get_db)
                           ):
-    message = await upload_manifest_backend(slug,request,file,db)   
+    message = await upload_manifest_backend(request,file,db)   
     return message
 
 

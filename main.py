@@ -44,6 +44,6 @@ async def redirect_to_docs():
     return RedirectResponse(url="/docs")
    
 app.include_router(manifest_router)
-app.include_router(canvas_router)
+#app.include_router(canvas_router)
 
 
