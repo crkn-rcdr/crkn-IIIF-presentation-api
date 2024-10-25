@@ -12,6 +12,7 @@ import logging
 from swift_config.swift_config import get_swift_connection
 import io
 from urllib.parse import urlparse,urlunparse
+import botocore
 
 # Load .env file
 load_dotenv()
@@ -22,6 +23,7 @@ conn = get_swift_connection()
 #config logger
 logging.basicConfig(level=logging.INFO,handlers=[logging.StreamHandler()])
 logger = logging.getLogger(__name__)
+
 
 # Create an async context manager for acquiring and releasing a Redis lock
 @asynccontextmanager
@@ -40,16 +42,18 @@ async def upload_manifest_backend(
     db: AsyncSession
 ):
     # Access swift_session, swift_token, and swift_storage_url from app state
-    """
+   
     swift_session = request.app.state.swift_session
     swift_token = request.app.state.swift_token
     swift_storage_url = request.app.state.swift_storage_url
-    """
+    
     redis = request.app.state.redis
-    """
+    
+   
+    
     if not swift_token:
         raise HTTPException(status_code=401, detail="Swift authentication token not found.")
-    """
+   
     try:
         try:
             content = await file.read()
@@ -58,7 +62,8 @@ async def upload_manifest_backend(
             raise HTTPException(status_code=500, detail="Failed to read the uploaded file.")
         manifest = json.loads(content)
         try:
-            slug = manifest['metadata'][0]['value']['none'][0]
+            value_dict = manifest['metadata'][0]['value']
+            slug = list(value_dict.values())[0]
         except Exception as e:
             logger.error(f"Error extracting slug from manifest: {e}")
             raise HTTPException(status_code=400, detail="Invalid manifest structure: missing slug.")
@@ -134,12 +139,15 @@ async def upload_manifest_backend(
             # Upload manifest to Swift
             manifest['items'] = new_manifest_items
             updated_manifest = json.dumps(manifest)
+           
+            """
             conn.put_object(
                 container_name,
                 manifest_name,
                 contents=updated_manifest,
                 content_type='application/json'
             )
+            
     
 
             """
@@ -153,7 +161,7 @@ async def upload_manifest_backend(
                     text = await resp.text() 
                     logger.info(f"File upload failed: {text}")       
                     raise HTTPException(status_code=resp.status, detail=f"File upload failed")         
-            """
+            
             # Check cache and delete if it exists
             redis_key = f"manifest_{slug}"
             if (await redis.get(redis_key)) is not None:
@@ -166,7 +174,8 @@ async def upload_manifest_backend(
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON content")
     
-    except ClientException as e:
-        raise HTTPException(status_code=500, detail=f"Failed to upload to Swift {e}")
+    except botocore.exceptions.BotoCoreError as e:
+        logger.error(f"File upload failed: {e}")
+        raise HTTPException(status_code=500, detail=f"File upload failed")
 
     return {"message": "Upload successfully", "data": manifest}
