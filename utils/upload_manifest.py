@@ -156,7 +156,7 @@ async def upload_manifest_backend(
             "X-Auth-Token": swift_token,
             "Content-Type": "application/json"
             }
-            async with swift_session.put(upload_url,headers=headers,data=content,ssl=False) as resp:
+            async with swift_session.put(upload_url,headers=headers,data=updated_manifest,ssl=False) as resp:
                 if resp.status not in (201, 202, 204):
                     text = await resp.text() 
                     logger.info(f"File upload failed: {text}")       
@@ -177,5 +177,9 @@ async def upload_manifest_backend(
     except botocore.exceptions.BotoCoreError as e:
         logger.error(f"File upload failed: {e}")
         raise HTTPException(status_code=500, detail=f"File upload failed")
+    
+    except Exception as e:
+        logger.error(f"Unexpected error occurred: {e}")
+        raise HTTPException(status_code=500, detail="An unexpected error occurred")
 
     return {"message": "Upload successfully", "data": manifest}
