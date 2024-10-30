@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 import os
 import json
 from urllib.parse import urlparse
+from fastapi import HTTPException
 
 async def manifest_task(manifest_dict: dict, db: AsyncSession,iiif_url:str,slug:str):
     #config logger
@@ -126,7 +127,7 @@ async def manifest_task(manifest_dict: dict, db: AsyncSession,iiif_url:str,slug:
             # Rollback the transaction in case of an error
             await db.rollback()  
             logger.error(f"Transaction failed and was rolled back: {str(e)}", exc_info=True)
-            raise RuntimeError(f"Fail to read database:{e}")
+            raise  HTTPException(status_code=500, detail="Fail to write data to database.")
         else:
             # Commit the transaction if all operations succeed
             await db.commit() 

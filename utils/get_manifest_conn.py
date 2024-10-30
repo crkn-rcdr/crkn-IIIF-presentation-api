@@ -40,7 +40,6 @@ async def get_manifest_conn(slug:str,request: Request):
 
         #Check Redis cache
         if (cached_profile := await redis.get(f"manifest_{slug}")) is not None:
-            print('test')
             return pickle.loads(cached_profile)
   
         #Fetch from Swift storage
@@ -71,4 +70,4 @@ async def get_manifest_conn(slug:str,request: Request):
     
     except Exception as e:
         logger.error(f"Error info: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=404, detail=f"Manifest not found for slug: {slug}")
+        raise HTTPException(status_code=404, detail=f"Manifest not found for slug: {slug}.")

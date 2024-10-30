@@ -81,16 +81,22 @@ async def upload_manifest_backend(
                 raise HTTPException(status_code=400, detail="Invalid file type. Only JSON files are allowed.")
          
             if not content:
-                raise HTTPException(status_code=400, detail="Empty file is not allowed")
+·                raise HTTPException(status_code=400, detail="Empty file is not allowed.")
     
             # Validate the manifest, pass JSON string
             validator = Validator()
             result = json.loads(validator.check_manifest(content))
             if result['okay'] == 0:
-                return {
-                    "message": "The manifest is invalid. Please correct it based on the provided error information.",
-                    "data": {"error": result['error'], "errorList": result['errorList']}
-                }
+                raise HTTPException(
+        status_code=400,
+        detail={
+            "message": "The manifest is invalid. Please correct it based on the provided error information.",
+            "data": {
+                "error": result['error'],
+                "errorList": result['errorList']
+            }
+        }
+    )
 
             manifest_name = f'{slug}/manifest.json'
             parsed_url = urlparse(manifest['id'])
@@ -180,6 +186,6 @@ async def upload_manifest_backend(
     
     except Exception as e:
         logger.error(f"Unexpected error occurred: {e}")
-        raise HTTPException(status_code=500, detail="An unexpected error occurred")
+        raise e
 
     return {"message": "Upload successfully", "data": manifest}
