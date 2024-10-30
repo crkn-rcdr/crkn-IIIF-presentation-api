@@ -81,7 +81,7 @@ async def upload_manifest_backend(
                 raise HTTPException(status_code=400, detail="Invalid file type. Only JSON files are allowed.")
          
             if not content:
-·                raise HTTPException(status_code=400, detail="Empty file is not allowed.")
+                raise HTTPException(status_code=400, detail="Empty file is not allowed.")
     
             # Validate the manifest, pass JSON string
             validator = Validator()
