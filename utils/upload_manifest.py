@@ -1,25 +1,19 @@
 import os
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import Request, UploadFile, HTTPException,File
+from fastapi import Request, UploadFile, HTTPException
 from utils.validator import Validator
 import json
 from utils import back_task
-from swiftclient.exceptions import ClientException
 from redis.asyncio import Redis
 from contextlib import asynccontextmanager
 import logging
-from swift_config.swift_config import get_swift_connection
-import io
-from urllib.parse import urlparse,urlunparse
+from urllib.parse import urlparse
 import botocore
 
 # Load .env file
 load_dotenv()
 container_name = os.getenv("CONTAINER_NAME")
-# Connect to Swift
-conn = get_swift_connection()
-
 #config logger
 logging.basicConfig(level=logging.INFO,handlers=[logging.StreamHandler()])
 logger = logging.getLogger(__name__)
@@ -117,7 +111,7 @@ async def upload_manifest_backend(
             for canvas_item in canvas_content:
                 
                 canvas_id = "/".join(canvas_item['id'].split("/")[-2:])
-                canvas_name = f'{slug}/{canvas_id}/canvas.json'
+                #canvas_name = f'{slug}/{canvas_id}/canvas.json'
                 canvas_parsed_url = urlparse(canvas_item['id'])
                 target_parsed_url = urlparse(canvas_item['items'][0]['items'][0]['target'])
                 annotation_page_parsed_url = urlparse(canvas_item['items'][0]['id'])
@@ -131,32 +125,10 @@ async def upload_manifest_backend(
                 canvas_item['items'][0]['id'] = annotation_page_id
                 canvas_item['items'][0]['items'][0]['id'] = annotation_id
                 new_manifest_items.append(canvas_item)
-                updated_canvas_content = json.dumps(canvas_item)
-                """
-                #upload canvas to swift
-                conn.put_object(
-                        container_name,
-                        canvas_name,
-                        contents=updated_canvas_content,
-                        content_type='application/json'
-                    )  
-        
-                """
+                #updated_canvas_content = json.dumps(canvas_item)
             # Upload manifest to Swift
             manifest['items'] = new_manifest_items
             updated_manifest = json.dumps(manifest)
-           
-            """
-            conn.put_object(
-                container_name,
-                manifest_name,
-                contents=updated_manifest,
-                content_type='application/json'
-            )
-            
-    
-
-            """
             upload_url = f"{swift_storage_url}/{container_name}/{manifest_name}"
             headers = {
             "X-Auth-Token": swift_token,
