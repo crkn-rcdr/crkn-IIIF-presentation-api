@@ -12,11 +12,10 @@ import json
 from urllib.parse import urlparse
 from fastapi import HTTPException
 
-async def manifest_task(manifest_dict: dict, db: AsyncSession,iiif_url:str,slug:str):
+async def manifest_task(manifest_dict: dict, db: AsyncSession,iiif_url:str,slug_value_dict:dict):
     #config logger
     logging.basicConfig(level=logging.INFO,handlers=[logging.StreamHandler()])
     logger = logging.getLogger(__name__)
-
     manifest_id = "/".join(manifest_dict['id'].split('/')[-2:])
     #extract values from manifest_dict to tables
     context = manifest_dict.get("@context",['https://iiif.io/api/presentation/3/context.json'])
@@ -31,9 +30,7 @@ async def manifest_task(manifest_dict: dict, db: AsyncSession,iiif_url:str,slug:
         "label": {
             "none": ["slug"]
         },
-        "value": {
-            "none": [slug]
-        }
+        "value": slug_value_dict
     }),
         provider=manifest_dict.get('provider',[{
             'id': 'https://www.crkn-rcdr.ca/',

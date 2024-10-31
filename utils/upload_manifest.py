@@ -56,8 +56,8 @@ async def upload_manifest_backend(
             raise HTTPException(status_code=500, detail="Failed to read the uploaded file.")
         manifest = json.loads(content)
         try:
-            value_dict = manifest['metadata'][0]['value']
-            slug = list(value_dict.values())[0]
+            slug_value_dict = manifest['metadata'][0]['value']
+            slug = list(slug_value_dict.values())[0][0]
         except Exception as e:
             logger.error(f"Error extracting slug from manifest: {e}")
             raise HTTPException(status_code=400, detail="Invalid manifest structure: missing slug.")
@@ -147,7 +147,7 @@ async def upload_manifest_backend(
 
             # write to the database
             iiif_url = str(request.base_url)
-            await back_task.manifest_task (manifest,db,iiif_url, slug)
+            await back_task.manifest_task (manifest,db,iiif_url,slug_value_dict)
 
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON content")
