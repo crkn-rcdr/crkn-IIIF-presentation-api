@@ -2,7 +2,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from Azure_auth.auth import BACKEND_CORS_ORIGINS, OPENAPI_CLIENT_ID, SCOPE_NAME
 from api.manifest import router as manifest_router
-from api.canvas import router as canvas_router
 from fastapi.responses import RedirectResponse
 from utils.lifespan_handler import lifespan
 app = FastAPI(
@@ -44,6 +43,6 @@ async def redirect_to_docs():
     return RedirectResponse(url="/docs")
    
 app.include_router(manifest_router)
-#app.include_router(canvas_router)
+
 
 

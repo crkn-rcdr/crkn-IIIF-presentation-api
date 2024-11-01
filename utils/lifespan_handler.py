@@ -21,6 +21,7 @@ swift_key = os.getenv("SWIFT_KEY")
 swift_auth_url = os.getenv("SWIFT_AUTH_URL")
 container_name = os.getenv("CONTAINER_NAME")
 redis_url = os.getenv("REDIS_URL")
+
 #Global variables for storing authentication token and storage URL
 swift_token = None
 swift_storage_url = None
@@ -45,7 +46,7 @@ async def lifespan(app) -> AsyncGenerator[None,None]:
         app.state.swift_token = swift_token
         app.state.swift_storage_url = swift_storage_url
     
-         # Initialize Redis connection
+        # Initialize Redis connection
         app.state.redis = aioredis.from_url(
             redis_url,
             decode_responses=False  
@@ -99,17 +100,22 @@ async def  initialize_swift():
 
 
 async def close_session(app):
-   
-   # Close the aiohttp session and Redis connection when the application shuts down.
-    
+    """
+    Close the aiohttp session and Redis connection when the application shuts down.
+    """ 
     global swift_session
-    if swift_session:
-        await swift_session.close()
-        logger.info("Closed aiohttp session.")
-    
-    # Close Redis connection if it was successfully initialized
-    if hasattr(app.state, 'redis') and app.state.redis:
-        await app.state.redis.close()
-        logger.info("Closed Redis connection.")
+    try:
+        if swift_session:
+            await swift_session.close()
+            logger.info("Closed aiohttp session.")
+    except Exception as e:
+        logger.error(f"Error closing aiohttp session: {e}")
+
+    try:
+        if hasattr(app.state, 'redis') and app.state.redis:
+            await app.state.redis.close()
+            logger.info("Closed Redis connection.")
+    except Exception as e:
+        logger.error(f"Error closing Redis connection: {e}")
 
    

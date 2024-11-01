@@ -1,4 +1,4 @@
-from swift_config.swift_config import get_swift_connection
+
 from fastapi import HTTPException,Request
 import logging
 import os
@@ -32,27 +32,23 @@ async def get_manifest_conn(slug:str,request: Request):
         redis = request.app.state.redis
         manifest_name = f'{slug}/manifest.json'
 
-        #Check Redis cache
+        #Check Redis cache,if exists return from redis
         if (cached_profile := await redis.get(f"manifest_{slug}")) is not None:
             return pickle.loads(cached_profile)
+        
+        # retrieve from the container
         file_url = f"{swift_storage_url}/{container_name}/{manifest_name}"
         headers = {
             "X-Auth-Token": swift_token
         }
         async with swift_session.get(file_url,headers=headers,ssl=False) as resp:
-            if resp.status == 200:
+            if resp.status == 200:    
                 manifest = await resp.read()
-                try:
-                    # Attempt to parse the data as JSON
-                    manifest_data = json.loads(manifest.decode('utf-8'))
-                   
-                except json.JSONDecodeError:
-                    # If not valid JSON, raise an error
-                    logger.error("Retrieved content is not valid JSON format.")
-                    raise HTTPException(status_code=400, detail="The file content is not valid JSON format.")
+                manifest_data = json.loads(manifest)
         # Cache the manifest in Redis 
         logger.info(f"Caching manifest_{slug} in Redis.")
         await redis.set(f"manifest_{slug}", pickle.dumps(manifest_data))
+       
         return JSONResponse(content=manifest_data, status_code=200)
     
     except Exception as e:

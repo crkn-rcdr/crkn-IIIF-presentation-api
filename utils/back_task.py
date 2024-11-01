@@ -5,11 +5,6 @@ from repository.annotation_page import AnnotationPageRepository
 from repository.annotation import AnnotationRepository
 from models.data.presentation_models import Manifest,Canvas,AnnotationPage,Annotation
 import logging
-from swift_config.swift_config import get_swift_connection
-from dotenv import load_dotenv
-import os
-import json
-from urllib.parse import urlparse
 from fastapi import HTTPException
 
 async def manifest_task(manifest_dict: dict, db: AsyncSession,iiif_url:str,slug_value_dict:dict):
