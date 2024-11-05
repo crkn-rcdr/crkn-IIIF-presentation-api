@@ -20,12 +20,14 @@ logger = logging.getLogger(__name__)
 
 def get_swift_connection():
     try:
+        
         return swiftclient.Connection(
             user=SWIFT_USER,
             key=SWIFT_KEY,
             authurl=SWIFT_AUTH_URL,
             preauthurl=SWIFT_PREAUTH_URL
     )
+    
     except (ClientException) as conn_error:
         logger.error(f"Failed to connect to Swift: {conn_error}")
         raise HTTPException(status_code=500, detail=f"Failed to connect to Swift: {conn_error}")
