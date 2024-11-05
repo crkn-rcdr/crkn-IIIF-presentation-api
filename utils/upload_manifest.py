@@ -10,14 +10,18 @@ from contextlib import asynccontextmanager
 import logging
 from urllib.parse import urlparse
 import botocore
+from swift_config.swift_config import get_swift_connection
 
 # Load .env file
 load_dotenv()
 container_name = os.getenv("CONTAINER_NAME")
+
 #config logger
 logging.basicConfig(level=logging.INFO,handlers=[logging.StreamHandler()])
 logger = logging.getLogger(__name__)
 
+# Connect to Swift
+conn = get_swift_connection()
 
 # Create an async context manager for acquiring and releasing a Redis lock
 @asynccontextmanager
@@ -36,18 +40,18 @@ async def upload_manifest_backend(
     db: AsyncSession
 ):
     # Access swift_session, swift_token, and swift_storage_url from app state
-   
+    """
     swift_session = request.app.state.swift_session
     swift_token = request.app.state.swift_token
     swift_storage_url = request.app.state.swift_storage_url
-    
+    """
     redis = request.app.state.redis
     
    
-    
+    """
     if not swift_token:
         raise HTTPException(status_code=401, detail="Swift authentication token not found.")
-   
+    """
     try:
         try:
             content = await file.read()
@@ -126,9 +130,17 @@ async def upload_manifest_backend(
                 canvas_item['items'][0]['items'][0]['id'] = annotation_id
                 new_manifest_items.append(canvas_item)
                 #updated_canvas_content = json.dumps(canvas_item)
+
             # Upload manifest to Swift
             manifest['items'] = new_manifest_items
             updated_manifest = json.dumps(manifest)
+            conn.put_object(
+                container_name,
+                manifest_name,
+                contents=updated_manifest,
+                content_type='application/json'
+            )
+            """
             upload_url = f"{swift_storage_url}/{container_name}/{manifest_name}"
             headers = {
             "X-Auth-Token": swift_token,
@@ -139,7 +151,7 @@ async def upload_manifest_backend(
                     text = await resp.text() 
                     logger.info(f"File upload failed: {text}")       
                     raise HTTPException(status_code=resp.status, detail=f"File upload failed")         
-            
+            """
             # Check cache and delete if it exists
             redis_key = f"manifest_{slug}"
             if (await redis.get(redis_key)) is not None:

@@ -1,5 +1,5 @@
 from locust import HttpUser,task,between
-from locust.stats import global_stats
+
 import random
 manifest_ids = ["69429/g05t3fx73x7t"]
 class AppUser(HttpUser):
@@ -9,7 +9,7 @@ class AppUser(HttpUser):
         """
         Clear statistics at the start of the test.
         """
-        global_stats.reset_all()
+  
 
     @task
     def get_files(self):

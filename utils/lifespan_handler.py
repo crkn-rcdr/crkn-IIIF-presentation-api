@@ -34,18 +34,18 @@ async def lifespan(app) -> AsyncGenerator[None,None]:
     """
     global swift_token,swift_storage_url,swift_session
     swift_session = aiohttp.ClientSession()
- 
+    
     try:
         #load OPENID config
         await initialize_openid_config()
-        
+        """
         #swift authentication
         swift_token, swift_storage_url = await initialize_swift()
         # Store swift_session, swift_token, and swift_storage_url in app state for later use
         app.state.swift_session = swift_session
         app.state.swift_token = swift_token
         app.state.swift_storage_url = swift_storage_url
-    
+        """
         # Initialize Redis connection
         app.state.redis = aioredis.from_url(
             redis_url,
@@ -102,7 +102,7 @@ async def  initialize_swift():
 async def close_session(app):
     """
     Close the aiohttp session and Redis connection when the application shuts down.
-    """ 
+    
     global swift_session
     try:
         if swift_session:
@@ -110,7 +110,7 @@ async def close_session(app):
             logger.info("Closed aiohttp session.")
     except Exception as e:
         logger.error(f"Error closing aiohttp session: {e}")
-
+    """
     try:
         if hasattr(app.state, 'redis') and app.state.redis:
             await app.state.redis.close()
