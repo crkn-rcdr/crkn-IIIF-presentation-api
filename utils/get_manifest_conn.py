@@ -35,7 +35,6 @@ async def get_manifest_conn(slug:str,request: Request):
         #Access Swift and Redis objects from the app's state
         redis = request.app.state.redis
         manifest_name = f'{slug}/manifest.json'
-
         #Check Redis cache,if exists return from redis
         if (cached_profile := await redis.get(f"manifest_{slug}")) is not None:
             return pickle.loads(cached_profile)

@@ -84,13 +84,8 @@ async def  initialize_swift():
         "X-Auth-Key":swift_key
     }
     try:
-        logger.info(f"Attempting pre-authentication with SWIFT_PREAUTH_URL: {swift_preauth_url}")
+        # Step1: Get a preauth token with preauth_url
         async with swift_session.get(swift_preauth_url, headers=headers) as preauth_resp:
-            logger.info(f"Received preauth response with status {preauth_resp.status}")
-            
-           
-            logger.info(f"Pre-auth response headers: {preauth_resp.headers}")
-            
             if preauth_resp.status in (200, 204):
                 preauth_token = preauth_resp.headers.get("X-Auth-Token")
                 if not preauth_token:
