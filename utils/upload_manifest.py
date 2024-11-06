@@ -61,7 +61,7 @@ async def upload_manifest_backend(
             raise HTTPException(status_code=500, detail="Failed to read the uploaded file.")
         manifest = json.loads(content)
         try:
-            slug_value_dict = get_slug_in_metadata(manifest['metadata'])[0]
+            slug_value_dict = get_slug_in_metadata(manifest['metadata'])
             slug = slug_value_dict[0]
         except Exception as e:
             logger.error(f"Error extracting slug from manifest: {e}")
