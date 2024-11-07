@@ -9,6 +9,7 @@ from Azure_auth.auth import azure_scheme
 import os
 import redis.asyncio as aioredis
 from fastapi import HTTPException
+from swift_config.swift_config import get_swift_connection
 
 #config logger
 logging.basicConfig(level=logging.INFO)
@@ -54,6 +55,8 @@ async def lifespan(app) -> AsyncGenerator[None,None]:
             decode_responses=False  
             
         )
+        conn = get_swift_connection()
+        app.state.conn = conn
        
         yield
     except Exception as e:

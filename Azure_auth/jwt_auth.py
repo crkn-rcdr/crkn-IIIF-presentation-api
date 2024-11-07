@@ -6,6 +6,7 @@ import jwt
 # load .env file
 load_dotenv()
 jwt_secret = os.getenv("EDITOR_SECRET_KEY")
+
 #define a HTTPBearer to handle the token from client
 client_token_scheme = HTTPBearer()
 # JWT authentication function

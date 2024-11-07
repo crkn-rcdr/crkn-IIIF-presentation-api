@@ -16,9 +16,6 @@ container_name = os.getenv("CONTAINER_NAME")
 logging.basicConfig(level=logging.INFO,handlers=[logging.StreamHandler()])
 logger = logging.getLogger(__name__)
 
-# Connect to Swift
-conn = get_swift_connection()
-
 async def get_manifest_conn(slug:str,request: Request):
     """
     Retrieve file content from the specified Swift container by filename, and format JSON data.
@@ -34,6 +31,7 @@ async def get_manifest_conn(slug:str,request: Request):
     try:
         #Access Swift and Redis objects from the app's state
         redis = request.app.state.redis
+        conn = request.app.state.conn
         manifest_name = f'{slug}/manifest.json'
         #Check Redis cache,if exists return from redis
         if (cached_profile := await redis.get(f"manifest_{slug}")) is not None:

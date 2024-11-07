@@ -21,9 +21,6 @@ container_name = os.getenv("CONTAINER_NAME")
 logging.basicConfig(level=logging.INFO,handlers=[logging.StreamHandler()])
 logger = logging.getLogger(__name__)
 
-# Connect to Swift
-conn = get_swift_connection()
-
 # Create an async context manager for acquiring and releasing a Redis lock
 @asynccontextmanager
 async def acquire_lock(redis_client: Redis, key: str, timeout: int = 30):
@@ -47,6 +44,7 @@ async def upload_manifest_backend(
     swift_storage_url = request.app.state.swift_storage_url
     """
     redis = request.app.state.redis
+    conn = request.app.state.conn
     
    
     """
@@ -131,7 +129,6 @@ async def upload_manifest_backend(
                 canvas_item['items'][0]['items'][0]['id'] = annotation_id
                 new_manifest_items.append(canvas_item)
                 #updated_canvas_content = json.dumps(canvas_item)
-
             # Upload manifest to Swift
             manifest['items'] = new_manifest_items
             updated_manifest = json.dumps(manifest)
