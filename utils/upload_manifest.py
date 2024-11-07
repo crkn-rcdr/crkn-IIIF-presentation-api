@@ -170,4 +170,4 @@ async def upload_manifest_backend(
         logger.error(f"Unexpected error occurred: {e}")
         raise e
 
-    return {"message": "Upload successfully", "data": manifest}
+    return {"message": "Upload successfully!"}
