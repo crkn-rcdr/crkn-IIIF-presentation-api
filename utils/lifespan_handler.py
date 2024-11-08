@@ -1,28 +1,15 @@
 import aiohttp
-import aioboto3
-import botocore
 import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
-from dotenv import load_dotenv
-from Azure_auth.auth import azure_scheme
-import os
 import redis.asyncio as aioredis
 from fastapi import HTTPException
 from swift_config.swift_config import get_swift_connection
+from utils.settings import swift_user, swift_key, swift_auth_url, redis_url
 
 #config logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Load .env file
-load_dotenv()
-swift_user = os.getenv("SWIFT_USER")
-swift_key = os.getenv("SWIFT_KEY")
-swift_auth_url = os.getenv("SWIFT_AUTH_URL")
-swift_preauth_url = os.getenv("SWIFT_PREAUTH_URL")
-container_name = os.getenv("CONTAINER_NAME")
-redis_url = os.getenv("REDIS_URL")
 
 #Global variables for storing authentication token and storage URL
 swift_token = None
@@ -38,12 +25,10 @@ async def lifespan(app) -> AsyncGenerator[None,None]:
     swift_session = aiohttp.ClientSession()
     
     try:
-        #load OPENID config
-        await initialize_openid_config()
-        """
+        
         #swift authentication
         swift_token, swift_storage_url = await initialize_swift()
-        """
+        
         # Store swift_session, swift_token, and swift_storage_url in app state for later use
         app.state.swift_session = swift_session
         app.state.swift_token = swift_token
@@ -55,9 +40,10 @@ async def lifespan(app) -> AsyncGenerator[None,None]:
             decode_responses=False  
             
         )
+        """
         conn = get_swift_connection()
         app.state.conn = conn
-       
+        """
         yield
     except Exception as e:
         logger.error(f"Error during lifespan setup: {e}")
@@ -67,16 +53,8 @@ async def lifespan(app) -> AsyncGenerator[None,None]:
         await close_session(app)
        
 
-async def initialize_openid_config():
-    """
-    Load OpenID configuration on startup.
-    """
-    try:
-        await azure_scheme.openid_config.load_config()
-    except Exception as e:
-        logger.error(f"Failed to load OpenID configuration: {e}")
-        raise
-"""
+
+
 async def  initialize_swift():
     global swift_session,swift_storage_url,swift_token
 
@@ -87,45 +65,26 @@ async def  initialize_swift():
         "X-Auth-Key":swift_key
     }
     try:
-        # Step1: Get a preauth token with preauth_url
-        async with swift_session.get(swift_preauth_url, headers=headers) as preauth_resp:
-            if preauth_resp.status in (200, 204):
-                preauth_token = preauth_resp.headers.get("X-Auth-Token")
-                if not preauth_token:
-                    raise Exception("Pre-authentication failed: missing token.")
-            else:
-                error_message = await preauth_resp.text()
-                logger.error(f"Pre-authentication failed: {error_message}")
-                raise Exception(f"Pre-authentication failed: Status code {preauth_resp.status}, response content: {error_message}")
-
-        # Step 2: Final authentication with SWIFT_AUTH_URL using preauth token
-        headers["X-Auth-Token"] = preauth_token
-        logger.info(f"Connecting to SWIFT_AUTH_URL: {swift_auth_url}")
-        async with swift_session.get(swift_auth_url, headers=headers) as auth_resp:
-            logger.info(f"Received auth response with status {auth_resp.status}")
-            logger.info(f"Auth response headers: {auth_resp.headers}")
-            
-            if auth_resp.status in (200, 204):
-                swift_token = auth_resp.headers.get("X-Auth-Token")
-                swift_storage_url = auth_resp.headers.get("X-Storage-Url")
+        async with swift_session.get(swift_auth_url,headers=headers) as resp:
+            if resp.status in(200,204):
+                swift_token = resp.headers.get("X-Auth-Token")
+                swift_storage_url = resp.headers.get("X-Storage-Url")
                 if not swift_token or not swift_storage_url:
-                    raise Exception("Authentication failed: missing token or storage URL.")
+                    raise Exception("Authentication failed:missing token or storage URL.")
                 return swift_token, swift_storage_url
             else:
-                error_message = await auth_resp.text()
+                error_message = await resp.text()
                 logger.error(f"Authentication failed: {error_message}")
-                raise Exception(f"Authentication failed: Status code {auth_resp.status}, response content: {error_message}")
-                
+                raise Exception(f"Authentication failed: Status code {resp.status}, response content: {error_message}")
     except Exception as e:
         logger.error(f"Failed during Swift initialization: {e}")
         raise
 
 
-"""
 async def close_session(app):
     """
     Close the aiohttp session and Redis connection when the application shuts down.
-    
+    """
     global swift_session
     try:
         if swift_session:
@@ -133,7 +92,7 @@ async def close_session(app):
             logger.info("Closed aiohttp session.")
     except Exception as e:
         logger.error(f"Error closing aiohttp session: {e}")
-    """
+    
     try:
         if hasattr(app.state, 'redis') and app.state.redis:
             await app.state.redis.close()

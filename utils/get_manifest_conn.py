@@ -16,10 +16,10 @@ container_name = os.getenv("CONTAINER_NAME")
 logging.basicConfig(level=logging.INFO,handlers=[logging.StreamHandler()])
 logger = logging.getLogger(__name__)
 
-async def get_manifest_conn(slug:str,request: Request):
+async def get_manifest_conn(manifest_id:str,request: Request):
     """
     Retrieve file content from the specified Swift container by filename, and format JSON data.
-    
+    """
     #Access swift_session, swift_token, and swift_storage_url,redis from app state
     swift_session = request.app.state.swift_session
     swift_token = request.app.state.swift_token
@@ -27,16 +27,15 @@ async def get_manifest_conn(slug:str,request: Request):
     
     if not swift_token or not swift_storage_url:
         raise HTTPException(status_code=401, detail="Authentication is not complete or failed.")
-    """
+    
     try:
         #Access Swift and Redis objects from the app's state
         redis = request.app.state.redis
-        conn = request.app.state.conn
-        manifest_name = f'{slug}/manifest.json'
+        #conn = request.app.state.conn
+        manifest_name = f'{manifest_id}/manifest.json'
         #Check Redis cache,if exists return from redis
-        if (cached_profile := await redis.get(f"manifest_{slug}")) is not None:
+        if (cached_profile := await redis.get(f"manifest_{manifest_id}")) is not None:
             return pickle.loads(cached_profile)
-        """
         # retrieve from the container
         file_url = f"{swift_storage_url}/{container_name}/{manifest_name}"
         headers = {
@@ -47,14 +46,13 @@ async def get_manifest_conn(slug:str,request: Request):
             if resp.status == 200:    
                 manifest = await resp.read()
                 manifest_data = json.loads(manifest)     
-        """
-        _,manifest = conn.get_object(container_name, manifest_name)
-        manifest_data = json.loads(manifest)
+        #_,manifest = conn.get_object(container_name, manifest_name)
+        #manifest_data = json.loads(manifest)
         # Cache the manifest in Redis 
-        logger.info(f"Caching manifest_{slug} in Redis.")
-        await redis.set(f"manifest_{slug}", pickle.dumps(manifest_data))
+        logger.info(f"Caching manifest_{manifest_id} in Redis.")
+        await redis.set(f"manifest_{manifest_id}", pickle.dumps(manifest_data))
         return JSONResponse(content=manifest_data, status_code=200)
     
     except Exception as e:
         logger.error(f"Error info: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=404, detail=f"Manifest not found for slug: {slug}.")
+        raise HTTPException(status_code=404, detail=f"Manifest not found for manifest Id: {manifest_id}.")

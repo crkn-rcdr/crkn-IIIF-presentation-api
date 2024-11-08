@@ -3,5 +3,3 @@ __pycache__/
 # Environments
 .env
 venv
-IIIF.sql
-docker-compose.txt

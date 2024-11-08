@@ -5,7 +5,7 @@ from fastapi import Depends,HTTPException
 import jwt
 # load .env file
 load_dotenv()
-jwt_secret = os.getenv("EDITOR_SECRET_KEY")
+jwt_secret = os.getenv("JWT_SECRET")
 
 #define a HTTPBearer to handle the token from client
 client_token_scheme = HTTPBearer()

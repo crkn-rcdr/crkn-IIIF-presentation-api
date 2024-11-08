@@ -4,18 +4,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Request, UploadFile, HTTPException
 from utils.validator import Validator
 import json
-from utils import back_task
 from redis.asyncio import Redis
 from contextlib import asynccontextmanager
 import logging
-from urllib.parse import urlparse
 import botocore
 from swift_config.swift_config import get_swift_connection
 from utils.metadata_slug import get_slug_in_metadata
-
-# Load .env file
-load_dotenv()
-container_name = os.getenv("CONTAINER_NAME")
+from utils.settings import container_name
 
 #config logger
 logging.basicConfig(level=logging.INFO,handlers=[logging.StreamHandler()])
@@ -35,22 +30,19 @@ async def acquire_lock(redis_client: Redis, key: str, timeout: int = 30):
 async def upload_manifest_backend(
     request: Request,
     file: UploadFile,
-    db: AsyncSession
 ):
     # Access swift_session, swift_token, and swift_storage_url from app state
-    """
+    
     swift_session = request.app.state.swift_session
     swift_token = request.app.state.swift_token
     swift_storage_url = request.app.state.swift_storage_url
-    """
-    redis = request.app.state.redis
-    conn = request.app.state.conn
     
-   
-    """
+    redis = request.app.state.redis
+    #conn = request.app.state.conn
+    
     if not swift_token:
         raise HTTPException(status_code=401, detail="Swift authentication token not found.")
-    """
+    
     try:
         try:
             content = await file.read()
@@ -58,6 +50,7 @@ async def upload_manifest_backend(
             logger.error(f"Error reading file: {e}")
             raise HTTPException(status_code=500, detail="Failed to read the uploaded file.")
         manifest = json.loads(content)
+        manifest_id = "/".join(manifest['id'].split('/')[-2:])
         try:
             slug_value_dict = get_slug_in_metadata(manifest['metadata'])
             slug = slug_value_dict[0]
@@ -66,7 +59,7 @@ async def upload_manifest_backend(
             raise HTTPException(status_code=400, detail="Invalid manifest structure: missing slug.")
         
         # Define the Redis lock key based on the slug
-        lock_key = f"lock_manifest_{slug}"
+        lock_key = f"lock_manifest_{manifest_id}"
 
         # Use the acquire_lock context manager to ensure exclusive access
         async with acquire_lock(redis, lock_key):
@@ -95,12 +88,7 @@ async def upload_manifest_backend(
         }
     )
 
-            manifest_name = f'{slug}/manifest.json'
-            parsed_url = urlparse(manifest['id'])
-            base_url = str(request.base_url)
-            manifest_id = f"{base_url.rstrip('/')}{parsed_url.path}"
-            manifest['id']=manifest_id
-            
+            manifest_name = f'{manifest_id}/manifest.json'
             # Check for empty values and raise error if any are found
             empty_keys = [key for key, value in manifest.items() if not value]
             if empty_keys:
@@ -108,30 +96,10 @@ async def upload_manifest_backend(
                     status_code=400,
                     detail=f"The following keys have empty values: {empty_keys}. Please provide values or remove the keys."
                 )
-            canvas_content = manifest['items']
-            new_manifest_items = []
-            #extract canvas values to upload files to swift
-            for canvas_item in canvas_content:
-                
-                canvas_id = "/".join(canvas_item['id'].split("/")[-2:])
-                #canvas_name = f'{slug}/{canvas_id}/canvas.json'
-                canvas_parsed_url = urlparse(canvas_item['id'])
-                target_parsed_url = urlparse(canvas_item['items'][0]['items'][0]['target'])
-                annotation_page_parsed_url = urlparse(canvas_item['items'][0]['id'])
-                annotation_parsed_url = urlparse(canvas_item['items'][0]['items'][0]['id'])
-                canvas_id = f"{base_url.rstrip('/')}{canvas_parsed_url.path}"
-                target = f"{base_url.rstrip('/')}{target_parsed_url.path}"
-                annotation_page_id = f"{base_url.rstrip('/')}{annotation_page_parsed_url.path}"
-                annotation_id = f"{base_url.rstrip('/')}{annotation_parsed_url.path}"
-                canvas_item['id']=canvas_id
-                canvas_item['items'][0]['items'][0]['target'] = target
-                canvas_item['items'][0]['id'] = annotation_page_id
-                canvas_item['items'][0]['items'][0]['id'] = annotation_id
-                new_manifest_items.append(canvas_item)
-                #updated_canvas_content = json.dumps(canvas_item)
+           
             # Upload manifest to Swift
-            manifest['items'] = new_manifest_items
             updated_manifest = json.dumps(manifest)
+            """
             conn.put_object(
                 container_name,
                 manifest_name,
@@ -149,16 +117,12 @@ async def upload_manifest_backend(
                     text = await resp.text() 
                     logger.info(f"File upload failed: {text}")       
                     raise HTTPException(status_code=resp.status, detail=f"File upload failed")         
-            """
+            
             # Check cache and delete if it exists
-            redis_key = f"manifest_{slug}"
+            redis_key = f"manifest_{manifest_id}"
             if (await redis.get(redis_key)) is not None:
                 await redis.delete(redis_key)
-
-            # write to the database
-            iiif_url = str(request.base_url)
-            await back_task.manifest_task (manifest,db,iiif_url,slug_value_dict)
-
+        
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON content")
     
