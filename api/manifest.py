@@ -1,6 +1,6 @@
-from fastapi import APIRouter,Depends,File,UploadFile,Request
+from fastapi import APIRouter,Depends,File,UploadFile,Request,Security
 from utils.upload_manifest import upload_manifest_backend
-
+from Azure_auth.auth import azure_scheme
 from Azure_auth.jwt_auth import jwt_auth
 from utils.get_manifest_conn import get_manifest_conn
 
@@ -22,6 +22,15 @@ async def send_manifest(request:Request,
     
     message = await upload_manifest_backend(request,file)   
     return message
+
+@router.put("/file",dependencies=[Security(azure_scheme)])
+async def update_manifest(request:Request,
+                          file:UploadFile = File(...)
+                          
+                          ):
+    message = await upload_manifest_backend(request,file)   
+    return message
+
 
    
 

@@ -6,7 +6,7 @@ import redis.asyncio as aioredis
 from fastapi import HTTPException
 from swift_config.swift_config import get_swift_connection
 from utils.settings import swift_user, swift_key, swift_auth_url, redis_url
-
+from Azure_auth.auth import azure_scheme
 #config logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,6 +25,8 @@ async def lifespan(app) -> AsyncGenerator[None,None]:
     swift_session = aiohttp.ClientSession()
     
     try:
+        #load OPENID config
+        await initialize_openid_config()
         
         #swift authentication
         swift_token, swift_storage_url = await initialize_swift()
@@ -54,6 +56,15 @@ async def lifespan(app) -> AsyncGenerator[None,None]:
        
 
 
+async def initialize_openid_config():
+    """
+    Load OpenID configuration on startup.
+    """
+    try:
+        await azure_scheme.openid_config.load_config()
+    except Exception as e:
+        logger.error(f"Failed to load OpenID configuration: {e}")
+        raise
 
 async def  initialize_swift():
     global swift_session,swift_storage_url,swift_token
