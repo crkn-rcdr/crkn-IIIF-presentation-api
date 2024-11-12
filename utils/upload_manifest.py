@@ -7,9 +7,8 @@ import json
 from redis.asyncio import Redis
 from contextlib import asynccontextmanager
 import logging
-import botocore
+import botocore.exceptions
 from swift_config.swift_config import get_swift_connection
-from utils.metadata_slug import get_slug_in_metadata
 from utils.settings import container_name
 
 #config logger
@@ -51,12 +50,6 @@ async def upload_manifest_backend(
             raise HTTPException(status_code=500, detail="Failed to read the uploaded file.")
         manifest = json.loads(content)
         manifest_id = "/".join(manifest['id'].split('/')[-2:])
-        try:
-            slug_value_dict = get_slug_in_metadata(manifest['metadata'])
-            slug = slug_value_dict[0]
-        except Exception as e:
-            logger.error(f"Error extracting slug from manifest: {e}")
-            raise HTTPException(status_code=400, detail="Invalid manifest structure: missing slug.")
         
         # Define the Redis lock key based on the slug
         lock_key = f"lock_manifest_{manifest_id}"
