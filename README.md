@@ -5,9 +5,9 @@ CRKN module
 ## Table of Contents
 
 1. [Description](#description)
-1. [Usage - Configuration options and additional functionality](#usage)
-1. [Limitations - OS compatibility, etc.](#limitations)
-1. [Development - Guide for contributing to the module](#development)
+2. [Usage - Configuration options and additional functionality](#usage)
+3. [Limitations - OS compatibility, etc.](#limitations)
+4. [Development - Guide for contributing to the module](#development)
 
 ## Description
 
@@ -23,4 +23,4 @@ The uploaded manifest.json file must comply with the IIIF Presentation API requi
 
 ## Development
 
-The functionality of upload is udes only by CRKN.
+The upload functionality is used only by CRKN, while the data retrieval functionality is open to the public.
