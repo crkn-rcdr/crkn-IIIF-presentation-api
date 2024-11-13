@@ -43,6 +43,11 @@ async def get_manifest_conn(manifest_id:str,request: Request):
         }
         
         async with swift_session.get(file_url,headers=headers,ssl=False) as resp:
+            #Handle token expiration
+            if resp.status == 401:
+                logger.error("Swift token has expired or it invalid.")
+                raise HTTPException(status_code=401,detail="Swift token has expired. Please re-authenticate.")
+            
             if resp.status == 200:    
                 manifest = await resp.read()
                 manifest_data = json.loads(manifest)     
