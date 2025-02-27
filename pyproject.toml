@@ -1,12 +1,12 @@
 [tool.poetry]
-name = "presentation_api"
+name = "presentation api"
 version = "0.1.0"
 description = ""
 authors = ["mary-crkn <mzheng@crkn.ca>"]
 readme = "README.md"
 package-mode = false
 
-[tool.poetry.dependencies]
+[tool.poetry.dependencies] 
 python = "^3.12"
 uvicorn = "^0.30.3"
 fastapi = "^0.115.5"
