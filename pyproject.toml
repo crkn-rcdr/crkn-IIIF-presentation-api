@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "presentation api"
+name = "presentation_api"
 version = "0.1.0"
 description = ""
 authors = ["mary-crkn <mzheng@crkn.ca>"]
