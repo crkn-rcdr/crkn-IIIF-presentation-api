@@ -8,7 +8,7 @@ from swift_config.swift_config import get_swift_connection
 from utils.settings import swift_user, swift_key, swift_auth_url, redis_url
 from Azure_auth.auth import azure_scheme
 import asyncio
-from fastapi_limiter import FastAPILimiter
+
 
 # Configure logger
 logging.basicConfig(level=logging.INFO)
@@ -44,8 +44,7 @@ async def lifespan(app) -> AsyncGenerator[None, None]:
             redis_url,
             decode_responses=False  
         )
-        # Initialize fastapi_limiter
-        await FastAPILimiter.init(app.state.redis)
+  
         """
         conn = get_swift_connection()
         app.state.conn = conn
