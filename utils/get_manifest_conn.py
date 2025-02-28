@@ -28,21 +28,24 @@ async def get_manifest_conn(manifest_id:str,request: Request):
     if not swift_token or not swift_storage_url:
         raise HTTPException(status_code=401, detail="Authentication is not complete or failed.")
     
+    #Check Redis cache,if exists return from redis otherwise is None or get an error continue to get data from swift
+    cached_profile = None
     try:
         #Access Swift and Redis objects from the app's state
         redis = request.app.state.redis
         #conn = request.app.state.conn
-        manifest_name = f'{manifest_id}/manifest.json'
-        cached_profile = None
-
-        #Check Redis cache,if exists return from redis otherwise is None or get an error continue to get data from swift
-        try:
-            cached_profile = await redis.get(f"manifest_{manifest_id}")
-        except Exception as redis_err:
-            logger.error(f"Redis error: {redis_err}")
+        cached_profile = await redis.get(f"manifest_{manifest_id}")
+    except Exception as redis_err:
+        logger.error(f"Redis error: {redis_err}")
+    
+    try:
         if cached_profile is not None:
             return pickle.loads(cached_profile)
+    except Exception as e:
+        logger.error(f"Pickle error: {str(e)}", exc_info=True)
         
+    try:
+        manifest_name = f'{manifest_id}/manifest.json'
         # retrieve from the container
         file_url = f"{swift_storage_url}/{container_name}/{manifest_name}"
         headers = {
