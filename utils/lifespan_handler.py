@@ -2,7 +2,7 @@ import aiohttp
 import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
-import redis.asyncio as aioredis
+# import redis.asyncio as aioredis -- TODO: add back when on production servers
 from fastapi import HTTPException
 from swift_config.swift_config import get_swift_connection
 from utils.settings import swift_user, swift_key, swift_auth_url, redis_url
@@ -40,10 +40,10 @@ async def lifespan(app) -> AsyncGenerator[None, None]:
         app.state.swift_storage_url = swift_storage_url
         
         # Initialize Redis connection
-        app.state.redis = aioredis.from_url(
-            redis_url,
-            decode_responses=False  
-        )
+        # app.state.redis = aioredis.from_url(
+        #     redis_url,
+        #     decode_responses=False  
+        # )
   
         """
         conn = get_swift_connection()

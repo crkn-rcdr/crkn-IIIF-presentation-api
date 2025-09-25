@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Request, UploadFile, HTTPException
 from utils.validator import Validator
 import json
-from redis.asyncio import Redis
+# from redis.asyncio import Redis - TODO: add back for production servers
 from contextlib import asynccontextmanager
 import logging
 import botocore.exceptions
@@ -16,15 +16,15 @@ logging.basicConfig(level=logging.INFO,handlers=[logging.StreamHandler()])
 logger = logging.getLogger(__name__)
 
 # Create an async context manager for acquiring and releasing a Redis lock
-@asynccontextmanager
-async def acquire_lock(redis_client: Redis, key: str, timeout: int = 30):
-    lock_acquired = await redis_client.set(key, "locked", nx=True, ex=timeout)
-    try:
-        if not lock_acquired:
-            raise HTTPException(status_code=409, detail="Manifest is being updated, please try again later.")
-        yield
-    finally:
-        await redis_client.delete(key)
+# @asynccontextmanager
+# async def acquire_lock(redis_client: Redis, key: str, timeout: int = 30):
+#     lock_acquired = await redis_client.set(key, "locked", nx=True, ex=timeout)
+#     try:
+#         if not lock_acquired:
+#             raise HTTPException(status_code=409, detail="Manifest is being updated, please try again later.")
+#         yield
+#     finally:
+#         await redis_client.delete(key)
 
 async def upload_manifest_backend(
     request: Request,
@@ -36,7 +36,7 @@ async def upload_manifest_backend(
     swift_token = request.app.state.swift_token
     swift_storage_url = request.app.state.swift_storage_url
     
-    redis = request.app.state.redis
+    # redis = request.app.state.redis
     #conn = request.app.state.conn
     
     if not swift_token:
@@ -52,34 +52,34 @@ async def upload_manifest_backend(
         manifest_id = "/".join(manifest['id'].split('/')[-2:])
         
         # Define the Redis lock key based on the slug
-        lock_key = f"lock_manifest_{manifest_id}"
+        # lock_key = f"lock_manifest_{manifest_id}"
 
         # Use the acquire_lock context manager to ensure exclusive access
-        async with acquire_lock(redis, lock_key):
-            # Check if a file is uploaded
-            if not file or file.filename == "":
-                raise HTTPException(status_code=400, detail="No file uploaded. Please upload a file.")
-            # Verify file format
-            if file.content_type != "application/json":
-                raise HTTPException(status_code=400, detail="Invalid file type. Only JSON files are allowed.")
-         
-            if not content:
-                raise HTTPException(status_code=400, detail="Empty file is not allowed.")
+        # async with acquire_lock(redis, lock_key):
+        # Check if a file is uploaded
+        if not file or file.filename == "":
+            raise HTTPException(status_code=400, detail="No file uploaded. Please upload a file.")
+        # Verify file format
+        if file.content_type != "application/json":
+            raise HTTPException(status_code=400, detail="Invalid file type. Only JSON files are allowed.")
+     
+        if not content:
+            raise HTTPException(status_code=400, detail="Empty file is not allowed.")
     
-            # Validate the manifest, pass JSON string
-            validator = Validator()
-            result = json.loads(validator.check_manifest(content))
-            if result['okay'] == 0:
-                raise HTTPException(
-        status_code=400,
-        detail={
-            "message": "The manifest is invalid. Please correct it based on the provided error information.",
-            "data": {
-                "error": result['error'],
-                "errorList": result['errorList']
-            }
-        }
-    )
+        # Validate the manifest, pass JSON string
+        validator = Validator()
+        result = json.loads(validator.check_manifest(content))
+        if result['okay'] == 0:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "message": "The manifest is invalid. Please correct it based on the provided error information.",
+                    "data": {
+                        "error": result['error'],
+                        "errorList": result['errorList']
+                    }
+                }
+            )
 
             manifest_name = f'{manifest_id}/manifest.json'
             # Check for empty values and raise error if any are found
@@ -112,9 +112,9 @@ async def upload_manifest_backend(
                     raise HTTPException(status_code=resp.status, detail=f"File upload failed")         
             
             # Check cache and delete if it exists
-            redis_key = f"manifest_{manifest_id}"
-            if (await redis.get(redis_key)) is not None:
-                await redis.delete(redis_key)
+            # redis_key = f"manifest_{manifest_id}"
+            # if (await redis.get(redis_key)) is not None:
+            #    await redis.delete(redis_key)
         
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON content")

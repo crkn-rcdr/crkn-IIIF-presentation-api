@@ -3,7 +3,7 @@ from fastapi import HTTPException,Request
 import logging
 import os
 import json
-import pickle
+# import pickle - TODO: add back for production servers
 from dotenv import load_dotenv
 from fastapi.responses import JSONResponse
 from swift_config.swift_config import get_swift_connection
@@ -28,21 +28,21 @@ async def get_manifest_conn(manifest_id:str,request: Request):
     if not swift_token or not swift_storage_url:
         raise HTTPException(status_code=401, detail="Authentication is not complete or failed.")
     
-    #Check Redis cache,if exists return from redis otherwise is None or get an error continue to get data from swift
-    cached_profile = None
-    try:
-        #Access Swift and Redis objects from the app's state
-        redis = request.app.state.redis
-        #conn = request.app.state.conn
-        cached_profile = await redis.get(f"manifest_{manifest_id}")
-    except Exception as redis_err:
-        logger.error(f"Redis error: {redis_err}")
+    # Check Redis cache,if exists return from redis otherwise is None or get an error continue to get data from swift - TODO: add back for production servers
+    # cached_profile = None
+    # try:
+    #     #Access Swift and Redis objects from the app's state
+    #     redis = request.app.state.redis
+    #     #conn = request.app.state.conn
+    #     cached_profile = await redis.get(f"manifest_{manifest_id}")
+    # except Exception as redis_err:
+    #     logger.error(f"Redis error: {redis_err}")
     
-    try:
-        if cached_profile is not None:
-            return pickle.loads(cached_profile)
-    except Exception as e:
-        logger.error(f"Pickle error: {str(e)}", exc_info=True)
+    # try:
+    #     if cached_profile is not None:
+    #         return pickle.loads(cached_profile)
+    # except Exception as e:
+    #     logger.error(f"Pickle error: {str(e)}", exc_info=True)
         
     try:
         manifest_name = f'{manifest_id}/manifest.json'
@@ -64,8 +64,8 @@ async def get_manifest_conn(manifest_id:str,request: Request):
         #_,manifest = conn.get_object(container_name, manifest_name)
         #manifest_data = json.loads(manifest)
         # Cache the manifest in Redis 
-        logger.info(f"Caching manifest_{manifest_id} in Redis.")
-        await redis.set(f"manifest_{manifest_id}", pickle.dumps(manifest_data))
+        # logger.info(f"Caching manifest_{manifest_id} in Redis.")
+        # await redis.set(f"manifest_{manifest_id}", pickle.dumps(manifest_data))
         return JSONResponse(content=manifest_data, status_code=200)
     
     except Exception as e:
