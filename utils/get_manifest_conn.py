@@ -1,4 +1,3 @@
-
 from fastapi import HTTPException,Request
 import logging
 import os
@@ -6,7 +5,7 @@ import json
 # import pickle - TODO: add back for production servers
 from dotenv import load_dotenv
 from fastapi.responses import JSONResponse
-from swift_config.swift_config import get_swift_connection
+from swift_config.swift_config import get_swift_connection  # (left as-is, even if unused)
 
 # Load .env file
 load_dotenv()
@@ -47,28 +46,36 @@ async def get_manifest_conn(manifest_id:str,request: Request):
     try:
         manifest_name = f'{manifest_id}/manifest.json'
         # retrieve from the container
-        file_url = f"{swift_storage_url}/{container_name}/{manifest_name}"
+        file_url = f"{swift_storage_url.rstrip('/')}/{container_name}/{manifest_name}"
         headers = {
             "X-Auth-Token": swift_token
         }
         
-        async with swift_session.get(file_url,headers=headers,ssl=False) as resp:
+        async with swift_session.get(file_url, headers=headers, ssl=False) as resp:
             #Handle token expiration
             if resp.status == 401:
                 logger.error("Swift token has expired or it invalid.")
-                raise HTTPException(status_code=401,detail="Swift token has expired. Please re-authenticate.")
+                raise HTTPException(status_code=401, detail="Swift token has expired. Please re-authenticate.")
             
-            if resp.status == 200:    
-                manifest = await resp.read()
-                manifest_data = json.loads(manifest)  
-                
-        _,manifest = conn.get_object(container_name, manifest_name)
-        manifest_data = json.loads(manifest)
-        # Cache the manifest in Redis 
-        # logger.info(f"Caching manifest_{manifest_id} in Redis.")
-        # await redis.set(f"manifest_{manifest_id}", pickle.dumps(manifest_data))
-        return JSONResponse(content=manifest_data, status_code=200)
-    
+            if resp.status == 404:
+                raise HTTPException(status_code=404, detail=f"Manifest not found for manifest Id: {manifest_id}.")
+            
+            if resp.status != 200:
+                logger.error(f"Swift GET unexpected status {resp.status} for {file_url}")
+                raise HTTPException(status_code=502, detail="Upstream storage error.")
+            
+            # 200 OK: parse and return
+            manifest_bytes = await resp.read()
+            try:
+                manifest_data = json.loads(manifest_bytes)
+            except Exception:
+                logger.error("Manifest is not valid JSON")
+                raise HTTPException(status_code=502, detail="Manifest is not valid JSON.")
+            
+            return JSONResponse(content=manifest_data, status_code=200)
+
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error info: {str(e)}", exc_info=True)
         raise HTTPException(status_code=404, detail=f"Manifest not found for manifest Id: {manifest_id}.")
