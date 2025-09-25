@@ -60,9 +60,10 @@ async def get_manifest_conn(manifest_id:str,request: Request):
             
             if resp.status == 200:    
                 manifest = await resp.read()
-                manifest_data = json.loads(manifest)     
-        #_,manifest = conn.get_object(container_name, manifest_name)
-        #manifest_data = json.loads(manifest)
+                manifest_data = json.loads(manifest)  
+                
+        _,manifest = conn.get_object(container_name, manifest_name)
+        manifest_data = json.loads(manifest)
         # Cache the manifest in Redis 
         # logger.info(f"Caching manifest_{manifest_id} in Redis.")
         # await redis.set(f"manifest_{manifest_id}", pickle.dumps(manifest_data))
