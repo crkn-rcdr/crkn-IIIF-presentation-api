@@ -30,43 +30,32 @@ async def upload_manifest_backend(
     request: Request,
     file: UploadFile,
 ):
-    # Access swift_session, swift_token, and swift_storage_url from app state
-    
     swift_session = request.app.state.swift_session
     swift_token = request.app.state.swift_token
     swift_storage_url = request.app.state.swift_storage_url
-    
-    # redis = request.app.state.redis
-    #conn = request.app.state.conn
-    
+
     if not swift_token:
         raise HTTPException(status_code=401, detail="Swift authentication token not found.")
-    
+
     try:
         try:
             content = await file.read()
         except Exception as e:
             logger.error(f"Error reading file: {e}")
             raise HTTPException(status_code=500, detail="Failed to read the uploaded file.")
-        manifest = json.loads(content)
-        manifest_id = "/".join(manifest['id'].split('/')[-2:])
-        
-        # Define the Redis lock key based on the slug
-        # lock_key = f"lock_manifest_{manifest_id}"
 
-        # Use the acquire_lock context manager to ensure exclusive access
-        # async with acquire_lock(redis, lock_key):
-        # Check if a file is uploaded
+        # basic request checks
         if not file or file.filename == "":
             raise HTTPException(status_code=400, detail="No file uploaded. Please upload a file.")
-        # Verify file format
         if file.content_type != "application/json":
             raise HTTPException(status_code=400, detail="Invalid file type. Only JSON files are allowed.")
-     
         if not content:
             raise HTTPException(status_code=400, detail="Empty file is not allowed.")
-    
-        # Validate the manifest, pass JSON string
+
+        # parse and validate
+        manifest = json.loads(content)
+        manifest_id = "/".join(manifest['id'].split('/')[-2:])
+
         validator = Validator()
         result = json.loads(validator.check_manifest(content))
         if result['okay'] == 0:
@@ -76,55 +65,49 @@ async def upload_manifest_backend(
                     "message": "The manifest is invalid. Please correct it based on the provided error information.",
                     "data": {
                         "error": result['error'],
-                        "errorList": result['errorList']
-                    }
-                }
+                        "errorList": result['errorList'],
+                    },
+                },
             )
 
-            manifest_name = f'{manifest_id}/manifest.json'
-            # Check for empty values and raise error if any are found
-            empty_keys = [key for key, value in manifest.items() if not value]
-            if empty_keys:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"The following keys have empty values: {empty_keys}. Please provide values or remove the keys."
-                )
-           
-            # Upload manifest to Swift
-            updated_manifest = json.dumps(manifest)
-            """
-            conn.put_object(
-                container_name,
-                manifest_name,
-                contents=updated_manifest,
-                content_type='application/json'
+        # ---- FROM HERE ON: this must run when validation passed (FIXED INDENTATION) ----
+        manifest_name = f"{manifest_id}/manifest.json"
+
+        # optional: reject empty values
+        empty_keys = [key for key, value in manifest.items() if not value]
+        if empty_keys:
+            raise HTTPException(
+                status_code=400,
+                detail=f"The following keys have empty values: {empty_keys}. Please provide values or remove the keys.",
             )
-            """
-            upload_url = f"{swift_storage_url}/{container_name}/{manifest_name}"
-            headers = {
+
+        # upload to Swift via tokenized HTTP
+        updated_manifest = json.dumps(manifest, ensure_ascii=False)
+        upload_url = f"{swift_storage_url.rstrip('/')}/{container_name}/{manifest_name}"
+        headers = {
             "X-Auth-Token": swift_token,
-            "Content-Type": "application/json"
-            }
-            async with swift_session.put(upload_url,headers=headers,data=updated_manifest,ssl=False) as resp:
-                if resp.status not in (201, 202, 204):
-                    text = await resp.text() 
-                    logger.info(f"File upload failed: {text}")       
-                    raise HTTPException(status_code=resp.status, detail=f"File upload failed")         
-            
-            # Check cache and delete if it exists
-            # redis_key = f"manifest_{manifest_id}"
-            # if (await redis.get(redis_key)) is not None:
-            #    await redis.delete(redis_key)
-        
+            "Content-Type": "application/json",
+        }
+
+        async with swift_session.put(upload_url, headers=headers, data=updated_manifest, ssl=False) as resp:
+            # OpenStack Swift usually returns 201 for object PUT; accept a few success codes
+            if resp.status not in (200, 201, 202, 204):
+                text = await resp.text()
+                logger.info(f"File upload failed [{resp.status}]: {text}")
+                raise HTTPException(status_code=resp.status, detail="File upload failed")
+
+            # log success for debugging
+            logger.info(f"Uploaded manifest to {upload_url} (status {resp.status})")
+
+        # (optional) cache invalidation here...
+
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON content")
-    
     except botocore.exceptions.BotoCoreError as e:
         logger.error(f"File upload failed: {e}")
-        raise HTTPException(status_code=500, detail=f"File upload failed")
-    
+        raise HTTPException(status_code=500, detail="File upload failed")
     except Exception as e:
-        logger.error(f"Unexpected error occurred: {e}")
+        logger.error(f"Unexpected error occurred: {e}", exc_info=True)
         raise e
 
     return {"message": "Upload successfully!"}
