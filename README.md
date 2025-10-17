@@ -1,6 +1,6 @@
 # IIIF Presentation API
 
-CRKN module
+CRKN IIIF module
 
 ## Table of Contents
 
