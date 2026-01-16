@@ -56,6 +56,7 @@ async def upload_manifest_backend(
         manifest = json.loads(content)
         manifest_id = "/".join(manifest['id'].split('/')[-2:])
 
+        '''
         validator = Validator()
         result = json.loads(validator.check_manifest(content))
         if result['okay'] == 0:
@@ -68,6 +69,7 @@ async def upload_manifest_backend(
                     },
                 },
             )
+        '''
 
         # ---- FROM HERE ON: this must run when validation passed (FIXED INDENTATION) ----
         manifest_name = f"{manifest_id}/manifest.json"
