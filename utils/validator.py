@@ -5,6 +5,10 @@ import traceback
 from utils.schema import schemavalidator
 from iiif_prezi.loader import ManifestReader
 from bottle import response
+import logging
+#config logger
+logging.basicConfig(level=logging.INFO,handlers=[logging.StreamHandler()])
+logger = logging.getLogger(__name__)
 
 
 class Validator(object):
@@ -21,6 +25,7 @@ class Validator(object):
         if version == '3.0':
             try:
                 infojson = schemavalidator.validate(data, version, url)
+                logger.info(json.dumps(infojson, indent=2))
                 for error in infojson['errorList']:
                     error.pop('error', None)
 
