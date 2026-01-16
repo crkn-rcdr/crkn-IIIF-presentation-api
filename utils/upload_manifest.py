@@ -64,8 +64,7 @@ async def upload_manifest_backend(
                 detail={
                     "message": "The manifest is invalid. Please correct it based on the provided error information.",
                     "data": {
-                        "error": result['error'],
-                        "errorList": result['errorList'],
+                        "error": result['error']
                     },
                 },
             )
