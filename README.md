@@ -29,6 +29,17 @@ The upload functionality is used only by CRKN, while the data retrieval function
 
 This project can be run with Docker Compose using the repo root `.env` file.
 
+Environment variables (set in `.env`):
+- `SWIFT_AUTH_URL`
+- `SWIFT_USER`
+- `SWIFT_KEY`
+- `SWIFT_PREAUTH_URL`
+- `CONTAINER_NAME`
+- `OPENAPI_CLIENT_ID`
+- `APP_CLIENT_ID`
+- `TENANT_ID`
+- `EDITOR_SECRET_KEY`
+
 1. Fill in the required values in `.env` (Swift and Azure AD settings are required for startup).
 2. Build and run:
 
