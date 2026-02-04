@@ -1,0 +1,15 @@
+.git
+.github
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv
+venv
+load_testing
+Azure_auth/__pycache__
+api/__pycache__
+utils/__pycache__
+swift_config/__pycache__
+*.log

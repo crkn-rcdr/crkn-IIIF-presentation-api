@@ -24,3 +24,16 @@ The uploaded manifest.json file must comply with the IIIF Presentation API requi
 ## Development
 
 The upload functionality is used only by CRKN, while the data retrieval functionality is open to the public.
+
+### Docker Compose
+
+This project can be run with Docker Compose using the repo root `.env` file.
+
+1. Fill in the required values in `.env` (Swift and Azure AD settings are required for startup).
+2. Build and run:
+
+```bash
+docker compose up --build
+```
+
+The API will be available at `http://localhost:8000`.
