@@ -5,8 +5,8 @@ from typing import AsyncGenerator
 # import redis.asyncio as aioredis -- TODO: add back when on production servers
 from fastapi import HTTPException
 from swift_config.swift_config import get_swift_connection
-from utils.settings import swift_user, swift_key, swift_auth_url, redis_url
-from Azure_auth.auth import azure_scheme
+from utils.settings import swift_user, swift_key, swift_auth_url, redis_url, azure_auth_enabled
+from Azure_auth.auth import azure_scheme, APP_CLIENT_ID, TENANT_ID
 import asyncio
 
 
@@ -28,8 +28,11 @@ async def lifespan(app) -> AsyncGenerator[None, None]:
     swift_session = aiohttp.ClientSession()
     
     try:
-        # Load OPENID config
-        await initialize_openid_config()
+        # Load OPENID config (optional for local/dev)
+        if azure_auth_enabled:
+            await initialize_openid_config()
+        else:
+            logger.info("Azure auth disabled; skipping OpenID configuration load.")
         
         # Swift authentication
         swift_token, swift_storage_url = await initialize_swift()
@@ -58,8 +61,9 @@ async def lifespan(app) -> AsyncGenerator[None, None]:
         raise HTTPException(status_code=500, detail=f"Failed to connect storage or Redis servers")
     
     finally:
-        # Cancel the token refresh task
-        app.state.token_refresh_task.cancel()
+        # Cancel the token refresh task if it exists
+        if hasattr(app.state, 'token_refresh_task'):
+            app.state.token_refresh_task.cancel()
         await close_session(app)
 
 async def initialize_openid_config():
@@ -67,6 +71,9 @@ async def initialize_openid_config():
     Load OpenID configuration on startup.
     """
     try:
+        if not APP_CLIENT_ID or not TENANT_ID:
+            logger.warning("Azure auth not configured; skipping OpenID configuration load.")
+            return
         await azure_scheme.openid_config.load_config()
     except Exception as e:
         logger.error(f"Failed to load OpenID configuration: {e}")

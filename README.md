@@ -35,6 +35,7 @@ Environment variables (set in `.env`):
 - `SWIFT_KEY`
 - `SWIFT_PREAUTH_URL`
 - `CONTAINER_NAME`
+- `AZURE_AUTH_ENABLED` (set to `false` to skip Azure OpenID config on startup)
 - `OPENAPI_CLIENT_ID`
 - `APP_CLIENT_ID`
 - `TENANT_ID`
