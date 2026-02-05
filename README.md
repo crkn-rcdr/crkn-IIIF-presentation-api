@@ -1,12 +1,13 @@
 # IIIF Presentation API
 
-FastAPI service for storing and serving IIIF Presentation 3 manifests for CRKN. Manifests are uploaded as JSON, written to OpenStack Swift, and retrieved by manifest ID. Upload is protected (Azure AD or JWT); retrieval is public. This API backs the CRKN Digirati editor.
+FastAPI service for storing and serving IIIF Presentation 3 manifests for CRKN. Manifests are uploaded as JSON, written to OpenStack Swift, and retrieved by manifest ID. Upload is protected (Azure AD or JWT); retrieval is public.
 
 Example flow:
 
-1. Upload `manifest.json` via `PUT /file` (Azure AD) or `PUT /admin/file` (JWT).
-2. Retrieve it via `GET /manifest/{manifest_id}`.
-3. Render in Mirador.
+1. Create Manifest using [Digirati Manifest Editor](https://github.com/digirati-co-uk/iiif-manifest-editor)
+2. Upload `manifest.json` via `PUT /file` (Azure AD) or `PUT /admin/file` (JWT).
+3. Retrieve it via `GET /manifest/{manifest_id}`.
+4. Render in [Mirador](https://github.com/ProjectMirador/mirador).
 
 ## Table of Contents
 
