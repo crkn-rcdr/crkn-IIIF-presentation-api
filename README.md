@@ -164,7 +164,7 @@ API docs:
 IIIF (International Image Interoperability Framework) defines shared APIs for describing and delivering digital objects. The Presentation API 3.0 specifies the manifest format used to describe a compound object, its metadata, and the sequence of canvases.
 
 - Presentation API spec: https://iiif.io/api/presentation/3.0/
-- We use the Mirador viewer to render manifests for users.
+- We use the [Mirador](https://github.com/ProjectMirador/mirador) viewer to render manifests for users.
 
 This service expects manifests to follow Presentation 3.0. A validator is available in `utils/validator.py`; validation can be re-enabled in `utils/upload_manifest.py` if needed.
 
