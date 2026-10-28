@@ -9,7 +9,7 @@ package-mode = false
 [tool.poetry.dependencies] 
 python = "^3.12"
 uvicorn = "^0.30.3"
-fastapi = "^0.115.5"
+fastapi = ">=0.130.0"
 sqlalchemy = "^2.0.31"
 alembic = "^1.13.2"
 aiopg = "^1.4.0"
@@ -29,8 +29,8 @@ flower = "^2.0.1"
 redis = ">=4.0"
 aioboto3 = "^13.2.0"
 cryptography = ">=49.0.0"
-starlette = "^0.40.0"
-python-multipart = "^0.0.18"
+starlette = ">=1.10.0"
+python-multipart = ">=0.0.31"
 
 
 
