@@ -60,7 +60,7 @@ pycparser==2.22 ; python_version >= "3.12" and python_version < "4.0" and platfo
 pydantic-core==2.27.1 ; python_version >= "3.12" and python_version < "4.0"
 pydantic-settings==2.6.1 ; python_version >= "3.12" and python_version < "4.0"
 pydantic==2.10.1 ; python_version >= "3.12" and python_version < "4.0"
-pyjwt==2.10.1 ; python_version >= "3.12" and python_version < "4.0"
+pyjwt==2.15.1 ; python_version >= "3.12" and python_version < "4.0"
 pyld==2.0.4 ; python_version >= "3.12" and python_version < "4.0"
 python-dateutil==2.9.0.post0 ; python_version >= "3.12" and python_version < "4.0"
 python-dotenv==1.0.1 ; python_version >= "3.12" and python_version < "4.0"
