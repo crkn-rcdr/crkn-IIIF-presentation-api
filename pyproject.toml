@@ -28,7 +28,7 @@ celery = "^5.4.0"
 flower = "^2.0.1"
 redis = ">=4.0"
 aioboto3 = "^13.2.0"
-cryptography = "^43.0.1"
+cryptography = ">=49.0.0"
 starlette = "^0.40.0"
 python-multipart = "^0.0.18"
 
