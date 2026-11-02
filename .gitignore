@@ -3,3 +3,13 @@ __pycache__/
 # Environments
 .env
 venv
+
+# Local environments wildcard
+.env.*
+!.env.example
+
+# Secret keys and certs
+*.key
+*.pem
+*.p12
+*.pfx
