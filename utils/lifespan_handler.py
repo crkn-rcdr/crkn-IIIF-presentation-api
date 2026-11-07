@@ -79,30 +79,40 @@ async def initialize_openid_config():
         logger.error(f"Failed to load OpenID configuration: {e}")
         raise
 
-async def initialize_swift():
+async def initialize_swift(max_retries: int = 15, retry_delay: float = 1.0):
     global swift_session, swift_storage_url, swift_token
 
-    # Perform Swift authentication 
+    if swift_session is None or swift_session.closed:
+        swift_session = aiohttp.ClientSession()
+
     headers = {
         "X-Auth-User": swift_user,
         "X-Auth-Key": swift_key
     }
-    try:
-        async with swift_session.get(swift_auth_url, headers=headers) as resp:
-            if resp.status in (200, 204):
-                swift_token = resp.headers.get("X-Auth-Token")
-                swift_storage_url = resp.headers.get("X-Storage-Url")
-              
-                if not swift_token or not swift_storage_url:
-                    raise Exception("Authentication failed: missing token or storage URL.")
-                return swift_token, swift_storage_url
-            else:
-                error_message = await resp.text()
-                logger.error(f"Authentication failed: {error_message}")
-                raise Exception(f"Authentication failed: Status code {resp.status}, response content: {error_message}")
-    except Exception as e:
-        logger.error(f"Failed during Swift initialization: {e}")
-        raise
+
+    last_error = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            async with swift_session.get(swift_auth_url, headers=headers) as resp:
+                if resp.status in (200, 204):
+                    swift_token = resp.headers.get("X-Auth-Token")
+                    swift_storage_url = resp.headers.get("X-Storage-Url")
+                  
+                    if not swift_token or not swift_storage_url:
+                        raise Exception("Authentication failed: missing token or storage URL.")
+                    return swift_token, swift_storage_url
+                else:
+                    error_message = await resp.text()
+                    last_error = Exception(f"Status code {resp.status}, response content: {error_message}")
+                    logger.warning(f"Swift auth attempt {attempt}/{max_retries} failed: {last_error}")
+        except Exception as e:
+            last_error = e
+            if attempt < max_retries:
+                logger.warning(f"Swift auth connection attempt {attempt}/{max_retries} failed ({e}), retrying in {retry_delay}s...")
+                await asyncio.sleep(retry_delay)
+
+    logger.error(f"Failed during Swift initialization after {max_retries} attempts: {last_error}")
+    raise last_error
 
 async def refresh_token_periodically(app):
     """ 
